@@ -25,7 +25,6 @@ public class RestServiceLocator extends ServiceLocator {
         injectResource();
     }
 
-    @SuppressWarnings("unchecked")
     private void injectResource() {
         final RestfulHttpHandler handler = super.lookup(RestfulHttpHandler.class);
         if (null == handler) {
@@ -57,6 +56,10 @@ public class RestServiceLocator extends ServiceLocator {
                 }
                 if (!found) continue;
 
+                if (inject(classFinder, suppliers, wrapper.getService(), field)) {
+                    count++;
+                }
+                /*
                 try {
                     Class<?> resourceType = Class.forName(field.getGenericType().getTypeName());
                     final Class<? super Supplier<?>> supplierType = (Class<? super Supplier<?>>)classFinder.findSupplier(resourceType);
@@ -84,12 +87,49 @@ public class RestServiceLocator extends ServiceLocator {
                     LOGGER.log(Level.WARNING, String.format("[REST] Not found '%s' Supplier.",
                             field.getGenericType().getTypeName()), e);
                 }
+                */
             }
 
         }
         LOGGER.info(String.format("[REST] Injected %s fields with @Resouce", count));
     }
 
+    @SuppressWarnings("unchecked")
+    protected boolean inject(ClassFinder classFinder, Map<Class<?>, Supplier<?>> suppliers, Object bean, Field field) {
+
+        try {
+            final Class<?> resourceType = Class.forName(field.getGenericType().getTypeName());
+            final Class<? super Supplier<?>> supplierType =
+                    (Class<? super Supplier<?>>)classFinder.findSupplier(resourceType);
+            if (supplierType != null && !suppliers.containsKey(resourceType)) {
+                suppliers.put(resourceType, (Supplier<?>)supplierType.newInstance());
+            }
+
+            // Injection
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.fine(String.format("[REST] Injection @Resouce of '%s.%s'",
+                    field.getDeclaringClass().getSimpleName(),
+                    field.getName()));
+            }
+            field.setAccessible(true);
+
+            if (supplierType != null) {
+                Supplier<?> supplier = suppliers.get(resourceType);
+                field.set(bean, supplier.get());
+            } else {
+                Object res = lookup(resourceType);
+                if(null != res) {
+                    field.set(bean, res);
+                }
+            }
+            return true;
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+            LOGGER.log(Level.WARNING, String.format("[REST] Not found '%s' Supplier.",
+                    field.getGenericType().getTypeName()), e);
+            return false;
+        }
+
+    }
 
     public static class RestServiceMonitor extends ServiceMonitor implements RestServiceHandler.Listener {
 
