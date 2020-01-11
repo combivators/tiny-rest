@@ -26,6 +26,7 @@ public class RestServiceLocator extends ServiceLocator {
     }
 
     private void injectResource() {
+
         final RestfulHttpHandler handler = super.lookup(RestfulHttpHandler.class);
         if (null == handler) {
             LOGGER.warning("[REST] Not found RestfulHttpHandler instance.");
@@ -36,10 +37,10 @@ public class RestServiceLocator extends ServiceLocator {
             LOGGER.warning("[REST] Not found RestApplication instance.");
             return;
         }
+        // Find and load pattern classes about 2s.
         final ClassFinder classFinder = application.getClassFinder();
 
-        Map<Class<?>, Supplier<?>> suppliers = new HashMap<>();
-
+        final Map<Class<?>, Supplier<?>> suppliers = new HashMap<>();
         // Find all rest services and inject resource.
         final RestServiceWrapper[] services = handler.setupRestServiceFactory();
         int count = 0;
@@ -59,35 +60,6 @@ public class RestServiceLocator extends ServiceLocator {
                 if (inject(classFinder, suppliers, wrapper.getService(), field)) {
                     count++;
                 }
-                /*
-                try {
-                    Class<?> resourceType = Class.forName(field.getGenericType().getTypeName());
-                    final Class<? super Supplier<?>> supplierType = (Class<? super Supplier<?>>)classFinder.findSupplier(resourceType);
-                    if (supplierType != null && !suppliers.containsKey(resourceType)) {
-                        suppliers.put(resourceType, (Supplier<?>)supplierType.newInstance());
-                    }
-
-                    // Injection
-                    LOGGER.fine(String.format("[REST] Injection @Resouce of '%s.%s'",
-                            field.getDeclaringClass().getSimpleName(),
-                            field.getName()));
-                    field.setAccessible(true);
-                    count++;
-                    if (supplierType != null) {
-                        Supplier<?> supplier = suppliers.get(resourceType);
-                        field.set(wrapper.getService(), supplier.get());
-                    } else {
-                        Object res = super.lookup(resourceType);
-                        if(null != res) {
-                            field.set(wrapper.getService(), res);
-                        }
-                    }
-
-                } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
-                    LOGGER.log(Level.WARNING, String.format("[REST] Not found '%s' Supplier.",
-                            field.getGenericType().getTypeName()), e);
-                }
-                */
             }
 
         }
@@ -134,8 +106,22 @@ public class RestServiceLocator extends ServiceLocator {
     public static class RestServiceMonitor extends ServiceMonitor implements RestServiceHandler.Listener {
 
         @Override
-        public void called(String target, int id, String method) {
-            LOGGER.log(Level.INFO, String.format("[REST] Invoked '%d#%s.%s(...)'",	id, target, method));
+        public void called(String target, int id, String method, Object[] args) {
+            StringBuilder sb = new StringBuilder();
+            if (args != null) {
+                for (Object o : args) {
+                    if (sb.length() > 0) {
+                        sb.append(", '");
+                    }
+                    sb.append(String.valueOf(o));
+               }
+            }
+            LOGGER.log(Level.INFO, String.format("[REST] Invoked '%d#%s.%s(%s)'",	id, target, method, sb.toString()));
+        }
+
+        @Override
+        public void param(String annotation, String type, String value) {
+            LOGGER.log(Level.INFO, String.format("[REST] %s '%s' = %s", annotation, type, value));
         }
 
         @Override

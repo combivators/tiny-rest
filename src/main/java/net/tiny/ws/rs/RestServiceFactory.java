@@ -85,7 +85,8 @@ public class RestServiceFactory {
                 Object target = serviceClass.newInstance();
                 RestServiceWrapper wrapper = new RestServiceWrapper(target, listener);
                 servicePatterns.add(wrapper);
-                LOGGER.fine(String.format("[REST] - %s", wrapper.toString()));
+                if (LOGGER.isLoggable(Level.FINE))
+                    LOGGER.fine(String.format("[REST] - %s", wrapper.toString()));
             }
             if(this.servicePatterns.isEmpty()) {
                 throw new RuntimeException("One REST service also could not be found.");
@@ -182,13 +183,23 @@ public class RestServiceFactory {
                 if(value != null && !paramType.isInstance(value)) {
                     return converter.convert(value.toString(), paramType);
                 }
+                if (listener != null) {
+                    listener.param("@HeaderParam", key, value);
+                }
                 return value;
             } else if(annotation instanceof CookieParam) {
                 key = ((CookieParam)annotation).value();
                 String value = getCookie(he, key, true);
+                if (listener != null) {
+                    listener.param("@CookieParam", key, value);
+                }
                 return converter.convert(value.toString(), paramType);
             } else if(annotation instanceof BeanParam) {
-                return JsonParser.unmarshal(new String(contents), paramType);
+                final String json = new String(contents);
+                if (listener != null) {
+                    listener.param("@BeanParam", paramType.getSimpleName(), json);
+                }
+                return JsonParser.unmarshal(json, paramType);
             } else if (annotation instanceof Context) {
                 LOGGER.warning("[REST] - Not support @Context parameter type.");
                 /*

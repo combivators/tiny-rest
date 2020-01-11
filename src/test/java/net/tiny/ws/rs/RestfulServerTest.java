@@ -3,7 +3,6 @@ package net.tiny.ws.rs;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,7 +25,7 @@ import net.tiny.ws.WebServiceHandler;
 
 public class RestfulServerTest {
 
-    static int port = 8080;
+    static int port;
     static EmbeddedServer server;
 
     @BeforeAll
@@ -38,7 +37,7 @@ public class RestfulServerTest {
         ParameterFilter parameter = new ParameterFilter();
         SnapFilter snap = new SnapFilter();
         RestApplication application = new RestApplication();
-        application.setPattern("net.tiny.*, !java.*, !javax.*, !com.sun.*, !org.junit.*,");
+        application.setPattern("net.tiny.ws.rs.*, !java.*, !javax.*, !com.sun.*, !org.junit.*,");
         RestfulHttpHandler rest = new RestfulHttpHandler();
         rest.setApplication(application);
         rest.setupRestServiceFactory();
@@ -50,9 +49,10 @@ public class RestfulServerTest {
                 .filter(logger);
 
         server = new EmbeddedServer.Builder()
-                .port(port)
+                .random()
                 .handlers(Arrays.asList(restful, health))
                 .build();
+        port = server.port();
         server.listen(callback -> {
             if(callback.success()) {
                 System.out.println("Server listen on port: " + port);

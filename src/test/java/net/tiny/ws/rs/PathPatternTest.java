@@ -56,6 +56,12 @@ public class PathPatternTest {
     }
 
     @Test
+    public void testCheckPathQueryPattern() {
+        assertEquals(2, PathPattern.checkPattern("msg/reg/{channel}?{token=\\w+}"));
+    }
+
+
+    @Test
     public void testComparePattern() throws IllegalArgumentException {
         assertEquals(1, PathPattern.comparePattern("/u/{id}/a", "/z/{id}/"));
         assertEquals(1, PathPattern.comparePattern("/z/{id}/a", "/z/{id}/"));

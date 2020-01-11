@@ -23,7 +23,6 @@ public class PathPattern {
         return compareWithSwitch(pattern, url, '{', '}', false);
     }
 
-
     /**
      * 比较url是否符合pattern
      *

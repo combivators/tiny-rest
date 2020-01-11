@@ -5,17 +5,14 @@ import java.lang.reflect.Method;
 public interface RestServiceHandler {
 
     interface Listener {
-        void called(String target, int id, String method);
+        void called(String target, int id, String method, Object[] args);
         void error(Throwable err, String method, Object[] args);
+        void param(String annotation, String type, String json);
     }
 
     Object invoke(final Object[] args);
     Object getTarget() throws Exception;
     Method getMethod();
-//	Mode getMode();
-//	Class<?> getResponseType();
-//	String[] getRequestTypes();
-//	String[] getMediaTypes();
     String[] getAllowedRoles();
     boolean acceptableMediaType(String type);
 

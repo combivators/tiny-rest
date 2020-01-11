@@ -15,7 +15,6 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
-import javax.xml.ws.WebServiceException;
 
 public class RestServiceWrapper implements Comparable<RestServiceWrapper>, Constants {
 
@@ -31,7 +30,7 @@ public class RestServiceWrapper implements Comparable<RestServiceWrapper>, Const
     private RestServiceHandler.Listener listener;
 
     public RestServiceWrapper(Object target, RestServiceHandler.Listener listener) {
-    	this.listener =listener;
+        this.listener =listener;
         setService(target);
     }
 
@@ -57,7 +56,7 @@ public class RestServiceWrapper implements Comparable<RestServiceWrapper>, Const
 //        }
         this.service = target;
 
-        Produces  produces  = this.serviceClass .getAnnotation(Produces.class);
+        Produces  produces  = this.serviceClass.getAnnotation(Produces.class);
         if(null != produces) {
             this.mediaType = produces.value()[0];
         } else {
@@ -68,9 +67,9 @@ public class RestServiceWrapper implements Comparable<RestServiceWrapper>, Const
         for(Method method : methods) {
             MethodPattern methodPattern = parseMethod(method);
             if(null != methodPattern) {
-            	if(listener != null) {
-            		methodPattern.setListener(listener);
-            	}
+                if (listener != null) {
+                    methodPattern.setListener(listener);
+                }
                 methodPatterns.add(methodPattern);
             }
         }
@@ -80,7 +79,7 @@ public class RestServiceWrapper implements Comparable<RestServiceWrapper>, Const
                 LOGGER.warning("Can't register a rest method '" + method.toGenericString() +"'");
             }
             //类里没有被登录的REST方法
-            throw new WebServiceException("'" + serviceClass.getName() +"' one method has not even to register on '" + this.parentPath+"'" );
+            throw new RuntimeException("'" + serviceClass.getName() +"' one method has not even to register on '" + this.parentPath+"'" );
         }
         // 对配置项进行排序，方便后面的查找
         Collections.sort(methodPatterns);
