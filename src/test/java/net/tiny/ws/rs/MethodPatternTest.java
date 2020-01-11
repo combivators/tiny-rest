@@ -7,10 +7,10 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import javax.annotation.security.RolesAllowed;
+import javax.ws.rs.BeanParam;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
@@ -342,4 +342,24 @@ public class MethodPatternTest {
         assertEquals("999", args.get("to"));
         assertEquals("[Item1, Item2, Item3]", args.get("order"));
     }
+
+
+    class Example08 {
+        @POST
+        @Path("msg/{channel}/reg?{token=\\w+}")
+        @Produces(MediaType.APPLICATION_JSON)
+        public void register(@PathParam("channel")String channel, @QueryParam("token")String token, @BeanParam String message) {
+        }
+
+    }
+
+    @Test
+    public void testExample08PathQueryParam() throws Exception {
+        Method[] methods = Example08.class.getDeclaredMethods();
+        assertEquals(1, methods.length);
+        Method method = Example08.class.getMethod("register", String.class, String.class, String.class);
+        MethodPattern methodPattern = new MethodPattern("msg", "{channel}/reg?{token=\\w+}", "POST", MediaType.APPLICATION_JSON, Example08.class, null, method);
+        assertTrue(methodPattern.validatePattern("msg/ch1/reg?token=1a2b3c4d", "POST"));
+    }
+
 }

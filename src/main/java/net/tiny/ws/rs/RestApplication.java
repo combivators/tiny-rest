@@ -23,8 +23,10 @@ public class RestApplication extends Application {
     private static Logger LOGGER = Logger.getLogger(RestApplication.class.getName());
     static final String PROPERTY_KEY = RestApplication.class.getName();
 
+    private Level level;
     private String loggingLevel   = "fine";
     private String pattern = "!java.*, !javax.*, !com.sun.*";
+    private String jars = null;
     private Set<Object> singletons = new HashSet<Object>();
     private ClassFinder classFinder;
 
@@ -34,6 +36,10 @@ public class RestApplication extends Application {
 
     public void setPattern(String pattern) {
     	this.pattern = pattern;
+    }
+
+    public void setJars(String jars) {
+    	this.jars = jars;
     }
 
     /**
@@ -66,10 +72,9 @@ public class RestApplication extends Application {
             if (logging != null) {
             	loggingLevel = logging;
             }
-
-        	classFinder =
-                    new ClassFinder(Thread.currentThread().getContextClassLoader(),
-                            false, new RestClassFilter(patterns));
+            level = Level.parse(loggingLevel.toUpperCase());
+            ClassFinder.setLoggingLevel(level);
+            classFinder = new ClassFinder(jars, new RestClassFilter(patterns));
     	}
     	return classFinder;
     }
@@ -77,8 +82,6 @@ public class RestApplication extends Application {
     private Set<Class<?>> findAllRestClasses() {
         try {
         	final ClassFinder finder = getClassFinder();
-            final Level level = Level.parse(loggingLevel.toUpperCase());
-            ClassFinder.setLoggingLevel(level);
             List<Class<?>> rests = finder.findAnnotatedClasses(javax.ws.rs.Path.class);
             LOGGER.info(String.format("[REST] Registered %d REST classe(s) with pattern '%s'", rests.size(), pattern.toString()));
             for (Class<?> r : rests) {

@@ -1,0 +1,12 @@
+{% extends "layout" %}
+{% block "header" %}<nav>Custom navigation</nav>{% endblock %}
+
+{% block "body" %}
+<div>
+  <h1>Hello, {{who}}</h1>
+</div>
+{% endblock %}
+
+{% block "footer" %}
+<div>&copy; {{year}} {{who}}</div>
+{% endblock %}

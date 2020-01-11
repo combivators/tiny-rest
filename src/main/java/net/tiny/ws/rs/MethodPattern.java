@@ -240,7 +240,7 @@ public class MethodPattern implements Comparable<MethodPattern>, RestServiceHand
         try {
             delgate = getTarget();
             if(listener != null) {
-                listener.called(delgate.getClass().getSimpleName(), delgate.hashCode(), method.getName());
+                listener.called(delgate.getClass().getSimpleName(), delgate.hashCode(), method.getName(), args);
             }
             return method.invoke(delgate, args);
         } catch (ApplicationException ex) {
@@ -253,9 +253,10 @@ public class MethodPattern implements Comparable<MethodPattern>, RestServiceHand
             if (err != null) {
                 throw err;
             }
-            throw new ApplicationException(ex.getMessage(), HttpURLConnection.HTTP_INTERNAL_ERROR);
+            throw new ApplicationException(ex, HttpURLConnection.HTTP_INTERNAL_ERROR);
         }
     }
+
     private ApplicationException findExceptionCause(Throwable ex) {
         Throwable cause = ex.getCause();
         if (null == cause) return null;
@@ -265,6 +266,7 @@ public class MethodPattern implements Comparable<MethodPattern>, RestServiceHand
             return findExceptionCause(cause);
         }
     }
+
     private String getParameterKey(Annotation[] annotations) {
         for(Annotation annotation : annotations) {
             if(annotation instanceof PathParam) {
@@ -446,4 +448,14 @@ public class MethodPattern implements Comparable<MethodPattern>, RestServiceHand
         return getPattern().compareTo(target.getPattern());
     }
 
+    @Override
+    public String toString() {
+        String name = "";
+        if (serviceClass != null) {
+            name = serviceClass.getSimpleName();
+        } else {
+            name = service.getClass().getSimpleName();
+        }
+        return String.format("%s.%s", name, method.getName());
+    }
 }

@@ -1,0 +1,5 @@
+messages:
+  locale: zh_CN
+  cache:  true
+  useCodeAsDefaultMessage: false
+  basenames: language/common/message, language/admin/message, language/application/message
