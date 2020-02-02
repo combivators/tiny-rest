@@ -3,6 +3,8 @@ package net.tiny.ws.rs;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 
+import net.tiny.ws.rs.test.SampleApiService;
+
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
@@ -78,6 +80,13 @@ public class MethodPatternTest {
         public String login(@PathParam("login") String login) {
             return login;
         }
+
+        @GET
+        @Path("ui/svg/{fas}/{icon}/{color}/{bg}")
+        @Produces(value = MediaType.APPLICATION_SVG_XML)
+        public String image(@PathParam("fas")String fas, @PathParam("icon")String icon, @PathParam("color")String color, @PathParam("bg")String background) {
+            return "<svg></svg>";
+        }
     }
 
     @Test
@@ -94,6 +103,14 @@ public class MethodPatternTest {
         assertFalse(methodPattern.validatePattern("rest/login/1234", "GET"));
 
         assertTrue(methodPattern.validatePattern("rest/login/abc", "GET"));
+
+
+        method = methods[1];
+        assertNotNull(method);
+        assertEquals("image", method.getName());
+        methodPattern = new MethodPattern("rest", "/ui/svg/{fas}/{icon}/{color}/{bg}", "GET", MediaType.APPLICATION_SVG_XML, Example02.class, null, method);
+
+        assertTrue(methodPattern.validatePattern("rest/ui/svg/fas/fa-user-circle/blue/gra", "GET"));
     }
 
     @Test
@@ -313,10 +330,10 @@ public class MethodPatternTest {
 
     @Test
     public void testQueryParam() throws Exception {
-        Method method = SampleService.class.getMethod("query", int.class, int.class, String.class);
+        Method method = SampleApiService.class.getMethod("query", int.class, int.class, String.class);
         assertNotNull(method);
         assertEquals("query", method.getName());
-        MethodPattern methodPattern = new MethodPattern("calc", "/query?{from}&{to}&{order}", "GET", MediaType.TEXT_PLAIN, SampleService.class, null, method);
+        MethodPattern methodPattern = new MethodPattern("calc", "/query?{from}&{to}&{order}", "GET", MediaType.TEXT_PLAIN, SampleApiService.class, null, method);
 
         Map<String, Object> args = new HashMap<String, Object>();
         int hit = methodPattern.hit("calc/query?from=10&to=999&order=%5BItem1%2C+Item2%2C+Item3%5D", "GET", args);
@@ -329,10 +346,10 @@ public class MethodPatternTest {
 
     @Test
     public void testQueryParamWithoutPattern() throws Exception {
-        Method method = SampleService.class.getMethod("query", int.class, int.class, String.class);
+        Method method = SampleApiService.class.getMethod("query", int.class, int.class, String.class);
         assertNotNull(method);
         assertEquals("query", method.getName());
-        MethodPattern methodPattern = new MethodPattern("calc", "/query", "GET", MediaType.TEXT_PLAIN, SampleService.class, null, method);
+        MethodPattern methodPattern = new MethodPattern("calc", "/query", "GET", MediaType.TEXT_PLAIN, SampleApiService.class, null, method);
 
         Map<String, Object> args = new HashMap<String, Object>();
         int hit = methodPattern.hit("calc/query?from=10&to=999&order=%5BItem1%2C+Item2%2C+Item3%5D", "GET", args);

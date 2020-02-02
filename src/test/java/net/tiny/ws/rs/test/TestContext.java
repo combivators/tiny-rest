@@ -1,4 +1,4 @@
-package net.tiny.ws.rs;
+package net.tiny.ws.rs.test;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;

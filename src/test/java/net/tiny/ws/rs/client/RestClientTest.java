@@ -21,7 +21,7 @@ import net.tiny.ws.rs.RestfulHttpHandler;
 
 public class RestClientTest {
 
-    static int port = 8080;
+    static int port;
     static EmbeddedServer server;
 
     @BeforeAll
@@ -30,10 +30,10 @@ public class RestClientTest {
         ParameterFilter parameter = new ParameterFilter();
         SnapFilter snap = new SnapFilter();
         RestApplication application = new RestApplication();
-        application.setPattern("net.tiny.*, !java.*, !javax.*, !com.sun.*, !org.junit.*,");
+        application.setPattern("net.tiny.ws.rs.test.*, !java.*, !javax.*, !com.sun.*, !org.junit.*,");
         RestfulHttpHandler rest = new RestfulHttpHandler();
         rest.setApplication(application);
-        WebServiceHandler restful = rest.path("/v1/api")
+        WebServiceHandler restful = rest.path("/api/v2/")
                 .filters(Arrays.asList(parameter, logger, snap));
 
         WebServiceHandler health = new VoidHttpHandler()
@@ -41,9 +41,10 @@ public class RestClientTest {
                 .filter(logger);
 
         server = new EmbeddedServer.Builder()
-                .port(port)
+                .random()
                 .handlers(Arrays.asList(restful, health))
                 .build();
+        port = server.port();
         server.listen(callback -> {
             if(callback.success()) {
                 System.out.println("Server listen on port: " + port);
@@ -64,7 +65,7 @@ public class RestClientTest {
                 .build();
 
 
-        RestClient.Request request = client.execute("http://localhost:8080/v1/api/test/get/1234");
+        RestClient.Request request = client.execute("http://localhost:" + port + "/api/v2/test/get/1234");
 
         RestClient.Response response = request.get(MediaType.APPLICATION_JSON);
         String body = response.getEntity();

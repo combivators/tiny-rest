@@ -8,6 +8,7 @@ public interface RestServiceHandler {
         void called(String target, int id, String method, Object[] args);
         void error(Throwable err, String method, Object[] args);
         void param(String annotation, String type, String json);
+        void bound(String wrapper, String path);
     }
 
     Object invoke(final Object[] args);

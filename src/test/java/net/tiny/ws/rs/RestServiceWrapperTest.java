@@ -16,6 +16,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Cookie;
 import javax.ws.rs.core.MediaType;
 
+import net.tiny.ws.rs.test.SampleApiService;
+
 public class RestServiceWrapperTest {
 
     @Path("rest")
@@ -63,6 +65,23 @@ public class RestServiceWrapperTest {
         }
     }
 
+    @Path("/")
+    public static class Example02 {
+
+        @GET
+        @Path("api/v10/add/{a}/{b}")
+        public String add(@PathParam("a")double a, @PathParam("b")double b) {
+            return String.format(" %1$.3f + %2$.3f = %3$.3f", a, b, (a+b));
+        }
+
+        @GET
+        @Path("ui/user/{id}/edit")
+        @Produces(MediaType.TEXT_HTML)
+        public String edit(@PathParam("id")int id) {
+            return "<!DOCTYPE html><html><head><title>User Profile</title></head><body>User Profile Contents</body></html>";
+        }
+
+    }
 /*
     @Test
     public void testCookieToString() throws Exception {
@@ -88,19 +107,44 @@ public class RestServiceWrapperTest {
         assertEquals(-8, restService.hit("/rest/xyz/abc/222", "GET").getHit());
         assertEquals(15,  restService.hit("/rest/aaa/abc", "GET").getHit());
         assertEquals(15,  restService.hit("/rest/add/111/222", "POST").getHit());
+
+        assertTrue(restService.matches("/rest"));
+        assertFalse(restService.matches("/api"));
+    }
+
+    @Test
+    public void testGetRestApiWithUi() throws Exception {
+        RestServiceLocator.RestServiceMonitor monitor = new RestServiceLocator.RestServiceMonitor();
+        final RestServiceWrapper restService = new RestServiceWrapper(new Example02(), monitor);
+        assertEquals("/", restService.getPath());
+        assertTrue(restService.getMode() == Constants.Mode.instance);
+        assertTrue(restService.getServiceClass().equals(Example02.class));
+
+        System.out.println(restService.toString());
+        assertEquals(0,  restService.hit("/api/v10/add/111/222", "GET").getHit());
+        assertEquals(0,  restService.hit("/ui/user/123/edit", "GET").getHit());
+        assertEquals(20,  restService.hit("/api/v1/add/123/456", "GET").getHit());
+        assertEquals(20,  restService.hit("/ui/admin/123/edit", "GET").getHit());
+
+        assertTrue(restService.matches("/api"));
+        assertTrue(restService.matches("/api/v1"));
+        assertTrue(restService.matches("/ui"));
+
+        assertFalse(restService.matches("/v1"));
+        assertFalse(restService.matches("/v2"));
     }
 
     @Test
     public void testQueryParamWithoutPattern() throws Exception {
         RestServiceLocator.RestServiceMonitor monitor = new RestServiceLocator.RestServiceMonitor();
-        final RestServiceWrapper restService = new RestServiceWrapper(new SampleService(), monitor);
-        assertEquals("/v1/api", restService.getPath());
+        final RestServiceWrapper restService = new RestServiceWrapper(new SampleApiService(), monitor);
+        assertEquals("/api/v1", restService.getPath());
         assertTrue(restService.getMode() == Constants.Mode.instance);
-        assertTrue(restService.getServiceClass().equals(SampleService.class));
+        assertTrue(restService.getServiceClass().equals(SampleApiService.class));
         System.out.println(restService.toString());
 
         Map<String, Object> args = new HashMap<String, Object>();
-        Hitting<?> hitting = restService.hit("/v1/api/query?from=10&to=999&order=%5BItem1%2C+Item2%2C+Item3%5D", "GET", args);
+        Hitting<?> hitting = restService.hit("/api/v1/query?from=10&to=999&order=%5BItem1%2C+Item2%2C+Item3%5D", "GET", args);
 
         assertEquals(0, hitting.getHit());
         assertEquals(3, args.size());

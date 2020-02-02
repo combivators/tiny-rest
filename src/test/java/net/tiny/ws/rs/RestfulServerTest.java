@@ -36,21 +36,35 @@ public class RestfulServerTest {
         AccessLogger logger = new AccessLogger();
         ParameterFilter parameter = new ParameterFilter();
         SnapFilter snap = new SnapFilter();
-        RestApplication application = new RestApplication();
-        application.setPattern("net.tiny.ws.rs.*, !java.*, !javax.*, !com.sun.*, !org.junit.*,");
-        RestfulHttpHandler rest = new RestfulHttpHandler();
-        rest.setApplication(application);
-        rest.setupRestServiceFactory();
-        WebServiceHandler restful = rest.path("/v1/api")
-                .filters(Arrays.asList(parameter, logger, snap));
 
         WebServiceHandler health = new VoidHttpHandler()
                 .path("/healthcheck")
                 .filter(logger);
 
+        RestServiceLocator.RestServiceMonitor listener = new RestServiceLocator.RestServiceMonitor();
+        RestApplication application = new RestApplication();
+        application.setPattern("net.tiny.ws.rs.test.*, !java.*, !javax.*, !com.sun.*, !org.junit.*,");
+        application.setScan(".*/classes/, .*/test-classes/, .*/tiny-.*[.]jar,");
+
+        RestfulHttpHandler restApi = new RestfulHttpHandler();
+        restApi.setListener(listener);
+        restApi.setApplication(application);
+        WebServiceHandler api = restApi.path("/api")
+                .filters(Arrays.asList(parameter, logger, snap));
+        restApi.setupRestServiceFactory();
+
+
+        RestfulHttpHandler restUi = new RestfulHttpHandler();
+        restUi.setListener(listener);
+        restUi.setApplication(application);
+        WebServiceHandler ui = restUi.path("/ui")
+                .filters(Arrays.asList(parameter, logger, snap));
+        restUi.setupRestServiceFactory();
+
+
         server = new EmbeddedServer.Builder()
                 .random()
-                .handlers(Arrays.asList(restful, health))
+                .handlers(Arrays.asList(api, ui, health))
                 .build();
         port = server.port();
         server.listen(callback -> {
@@ -70,7 +84,7 @@ public class RestfulServerTest {
     @Test
     public void testRestfulGet() throws Exception {
         String userAgent = "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1)";
-        URL url = new URL("http://localhost:" + port +"/v1/api/test/get/12345");
+        URL url = new URL("http://localhost:" + port +"/api/v2/test/get/12345");
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setRequestMethod("GET");
         connection.setRequestProperty("Connection", "Keep-Alive");
@@ -90,6 +104,8 @@ public class RestfulServerTest {
         }else{
             fail("HTTP Status : " + connection.getResponseCode());
         }
+
+
         connection.disconnect();
     }
 

@@ -4,9 +4,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.net.HttpCookie;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Arrays;
+import java.util.List;
 import java.util.logging.LogManager;
 
 import org.junit.jupiter.api.AfterAll;
@@ -18,6 +20,7 @@ import net.tiny.ws.EmbeddedServer;
 import net.tiny.ws.SnapFilter;
 import net.tiny.ws.WebServiceHandler;
 import net.tiny.ws.rs.client.RestClient;
+import net.tiny.ws.rs.test.SampleApiService;
 
 public class SampleServiceTest {
 
@@ -40,13 +43,14 @@ public class SampleServiceTest {
 
         RestApplication application = new RestApplication();
         application.setPattern("net.tiny.*, !java.*, !javax.*, !com.sun.*, !org.junit.*,");
+        application.setScan(".*/classes/, .*/test-classes/, .*/tiny-.*[.]jar,");
         RestfulHttpHandler rest = new RestfulHttpHandler();
         rest.setApplication(application);
         rest.setListener(new RestServiceLocator.RestServiceMonitor());
-        rest.setupRestServiceFactory();
 
-        WebServiceHandler restful = rest.path("/v1/api")
+        WebServiceHandler restful = rest.path("/api/v1")
                 .filters(Arrays.asList(logger, snap));
+        rest.setupRestServiceFactory();
 
         server = new EmbeddedServer.Builder()
                 .random()
@@ -75,24 +79,24 @@ public class SampleServiceTest {
                 .build();
 
         // Test GET
-        RestClient.Response response = client.doGet(new URL("http://localhost:" + port +"/v1/api/add/12.3/4.56"));
+        RestClient.Response response = client.doGet(new URL("http://localhost:" + port +"/api/v1/add/12.3/4.56"));
         assertEquals(response.getStatus(), HttpURLConnection.HTTP_OK);
         assertTrue(response.hasEntity());
         String body = response.getEntity();
         assertNotNull(body);
-        assertEquals("{\" 12.300 + 4.560 = 16.860\"}\n", body);
+        assertEquals("{\" 12.300 + 4.560 = 16.860\"}", body);
 
 
-        response = client.doGet(new URL("http://localhost:" + port +"/v1/api/plus/12.3/4.56"));
+        response = client.doGet(new URL("http://localhost:" + port +"/api/v1/plus/12.3/4.56"));
         assertEquals(response.getStatus(), HttpURLConnection.HTTP_NOT_FOUND);
         response.close();
 
-        response = client.doGet(new URL("http://localhost:" + port +"/v1/api/query?from=10&to=900&order=age"));
+        response = client.doGet(new URL("http://localhost:" + port +"/api/v1/query?from=10&to=900&order=age"));
         assertEquals(response.getStatus(), HttpURLConnection.HTTP_OK);
         assertTrue(response.hasEntity());
         body = response.getEntity();
         assertNotNull(body);
-        assertEquals("{\"query is called, from : 10, to : 900, order by age\"}\n", body);
+        assertEquals("{\"query is called, from : 10, to : 900, order by age\"}", body);
         response.close();
 
     }
@@ -104,18 +108,42 @@ public class SampleServiceTest {
                 .build();
 
         // Test GET
-        URL url = new URL("http://localhost:" + port +"/v1/api/ask/123");
-        SampleService.DummyEmail mail = new SampleService.DummyEmail();
+        URL url = new URL("http://localhost:" + port +"/api/v1/ask/123");
+        SampleApiService.DummyEmail mail = new SampleApiService.DummyEmail();
         mail.email = "user@example.com";
 
         RestClient.Response response = client.doPost(url, mail);
         assertEquals(response.getStatus(), HttpURLConnection.HTTP_OK);
         assertTrue(response.hasEntity());
-        SampleService.DummyUser user = response.readEntity(SampleService.DummyUser.class);
+        SampleApiService.DummyUser user = response.readEntity(SampleApiService.DummyUser.class);
         assertNotNull(user);
         assertEquals("user", user.name);
         assertEquals("example.com", user.domain);
 
+        response.close();
+    }
+
+    @Test
+    public void testCookie() throws Exception {
+        RestClient client = new RestClient.Builder()
+                .userAgent(BROWSER_AGENT)
+                .build();
+
+        // Test Cookie
+        RestClient.Request request = client.execute(new URL("http://localhost:" + port +"/api/v1/cookie"))
+                .cookie("cookie1=12345; cookie2=abcdef");
+        RestClient.Response response = request.get();
+        assertEquals(response.getStatus(), HttpURLConnection.HTTP_OK);
+        List<HttpCookie> cookies = response.getCookies();
+
+        assertEquals(1, cookies.size());
+        HttpCookie cookie = cookies.get(0);
+        assertEquals("12345abcdef", cookie.getValue());
+        assertEquals("12345abcdef", response.getCookie("authToken"));
+        assertTrue(response.hasEntity());
+        String body = response.getEntity();
+        assertNotNull(body);
+        assertEquals("{\"token\":\"1234567890abcdef\"}", body);
         response.close();
     }
 

@@ -3,6 +3,8 @@ package net.tiny.ws.rs;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 
+import net.tiny.ws.rs.test.TestApiService;
+
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
@@ -12,7 +14,7 @@ public class ReflectBenchmarkTest {
     @Test
     public void testReflect() throws Throwable {
         final int exeCount = 10000000;
-        final Class<?> c = TestService.class;
+        final Class<?> c = TestApiService.class;
         final Object j = c.newInstance();
         Method m = c.getMethod("setId", String.class);
         System.out.println("测试开始，循环次数：" + exeCount / 10000 + "万");
@@ -34,7 +36,7 @@ public class ReflectBenchmarkTest {
         System.out.println("执行结束，耗时" + (System.currentTimeMillis() - currTime)
                 + "豪秒");
         System.out.println("----------------------------------------------------------------------------------");
-        final TestService service = new TestService();
+        final TestApiService service = new TestApiService();
         System.out.println("直接调用：");  //20ms
         currTime = System.currentTimeMillis();
         for (int i = 0; i < exeCount; i++) {
@@ -48,7 +50,7 @@ public class ReflectBenchmarkTest {
         currTime = System.currentTimeMillis();
         MethodHandles.Lookup lookkup=MethodHandles.lookup();
         MethodType mt = MethodType.methodType(void.class, String.class);
-        MethodHandle methodHandle=lookkup.findVirtual(TestService.class, "setId", mt);
+        MethodHandle methodHandle=lookkup.findVirtual(TestApiService.class, "setId", mt);
         assertNotNull(methodHandle);
         for (int i = 0; i < exeCount; i++) {
             methodHandle.invokeExact(service, "test");

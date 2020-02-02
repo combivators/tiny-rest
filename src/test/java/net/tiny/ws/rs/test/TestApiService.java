@@ -1,4 +1,4 @@
-package net.tiny.ws.rs;
+package net.tiny.ws.rs.test;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -6,8 +6,8 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-@Path("/v1/api/test")
-public class TestService {
+@Path("/api/v2/test")
+public class TestApiService {
     private String id;
 
     @GET

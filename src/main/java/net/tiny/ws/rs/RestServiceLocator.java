@@ -1,6 +1,7 @@
 package net.tiny.ws.rs;
 
 import java.lang.reflect.Field;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,8 +28,8 @@ public class RestServiceLocator extends ServiceLocator {
 
     private void injectResource() {
 
-        final RestfulHttpHandler handler = super.lookup(RestfulHttpHandler.class);
-        if (null == handler) {
+        final Collection<RestfulHttpHandler> handlers = super.lookupGroup(RestfulHttpHandler.class);
+        if (null == handlers) {
             LOGGER.warning("[REST] Not found RestfulHttpHandler instance.");
             return;
         }
@@ -40,28 +41,30 @@ public class RestServiceLocator extends ServiceLocator {
         // Find and load pattern classes about 2s.
         final ClassFinder classFinder = application.getClassFinder();
 
-        final Map<Class<?>, Supplier<?>> suppliers = new HashMap<>();
-        // Find all rest services and inject resource.
-        final RestServiceWrapper[] services = handler.setupRestServiceFactory();
         int count = 0;
-        for (RestServiceWrapper wrapper : services) {
+        final Map<Class<?>, Supplier<?>> suppliers = new HashMap<>();
 
-            // Find a field with @Resource
-            List<Field> withResouceAnnotatedFields = ClassHelper.findAnnotatedFields(wrapper.getServiceClass(), Resource.class);
-            for(Field field : withResouceAnnotatedFields) {
-                boolean found = false;
-                for(RestServiceWrapper s : services) {
-                    if (field.getDeclaringClass().equals(s.getServiceClass())) {
-                        found = true;
+        // Find all rest services and inject resource.
+        for (RestfulHttpHandler handler : handlers) {
+            final RestServiceWrapper[] services = handler.setupRestServiceFactory();
+            for (RestServiceWrapper wrapper : services) {
+                // Find a field with @Resource
+                List<Field> withResouceAnnotatedFields = ClassHelper.findAnnotatedFields(wrapper.getServiceClass(), Resource.class);
+                for(Field field : withResouceAnnotatedFields) {
+                    boolean found = false;
+                    for(RestServiceWrapper s : services) {
+                        if (field.getDeclaringClass().equals(s.getServiceClass())) {
+                            found = true;
+                        }
+                    }
+                    if (!found) continue;
+
+                    if (inject(classFinder, suppliers, wrapper.getService(), field)) {
+                        count++;
                     }
                 }
-                if (!found) continue;
 
-                if (inject(classFinder, suppliers, wrapper.getService(), field)) {
-                    count++;
-                }
             }
-
         }
         LOGGER.info(String.format("[REST] Injected %s fields with @Resouce", count));
     }
@@ -129,6 +132,11 @@ public class RestServiceLocator extends ServiceLocator {
             Throwable cause = err.getCause();
             if (cause == null) cause = err;
             LOGGER.log(Level.WARNING, String.format("[REST] API method '%s(...)' invoke error : %s ", method, cause.getMessage()), cause);
+        }
+
+        @Override
+        public void bound(String wrapper, String path) {
+            LOGGER.log(Level.INFO, String.format("[REST] Context:'%s' bound %s", path, wrapper));
         }
 
     }
