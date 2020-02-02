@@ -149,7 +149,7 @@ public class RestClient {
         // Set request all header
         for (String key : request.headers.keySet()) {
             for (String value : request.getHeaders(key)) {
-                conn.setRequestProperty(key, value);
+                conn.addRequestProperty(key, value);
             }
         }
 
@@ -386,14 +386,19 @@ public class RestClient {
         }
 
         public Request cookie(String cookie) {
-            header(false, "Cookie", cookie);
+            header(true, "Cookie", cookie);
             return this;
         }
 
         public Request cookies(List<String> cs) {
+            StringBuilder sb = new StringBuilder();
             for (String c : cs) {
-                cookie(c);
+                if (sb.length()>0) {
+                    sb.append("; ");
+                }
+                sb.append(c);
             }
+            cookie(sb.toString());
             return this;
         }
 

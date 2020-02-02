@@ -36,23 +36,27 @@ import net.tiny.config.JsonParser;
 public class RestServiceFactory {
 
     private static Logger LOGGER = Logger.getLogger(RestServiceFactory.class.getName());
-
+    public static final String REST_PATH = "/rest";
     private static final String REGEX_COOKIE_NAME_VALUE = "^(\\w+)=(.*)$";
     private static final Pattern COOKIE_PATTERN = Pattern.compile(REGEX_COOKIE_NAME_VALUE);
+
+    private final String path;
 
     @Resource(name = "restApplication")
     private Application application;
     private Vector<RestServiceWrapper> servicePatterns = new Vector<RestServiceWrapper>();
+
     private boolean initing = false;
     private boolean changed = true;
     private Converter converter = new Converter();
     private RestServiceHandler.Listener listener;
 
     public RestServiceFactory() {
-        this(null);
+        this(REST_PATH, null);
     }
 
-    public RestServiceFactory(RestServiceHandler.Listener listener) {
+    public RestServiceFactory(String path, RestServiceHandler.Listener listener) {
+        this.path = path;
         this.listener = listener;
     }
 
@@ -78,23 +82,30 @@ public class RestServiceFactory {
         if(!changed)
             return;
         initing = true;
-        servicePatterns .clear();
+        servicePatterns.clear();
         try {
             Set<Class<?>> serviceClasses = application.getClasses();
+            Map<String, Object> cached = application.getProperties();
             for(Class<?> serviceClass : serviceClasses) {
-                Object target = serviceClass.newInstance();
-                RestServiceWrapper wrapper = new RestServiceWrapper(target, listener);
-                servicePatterns.add(wrapper);
-                if (LOGGER.isLoggable(Level.FINE))
-                    LOGGER.fine(String.format("[REST] - %s", wrapper.toString()));
+                RestServiceWrapper wrapper = (RestServiceWrapper)cached.get(serviceClass.getName());
+                if (null == wrapper) {
+                    wrapper = new RestServiceWrapper(serviceClass.newInstance(), listener);
+                    cached.put(serviceClass.getName(), wrapper);
+                }
+                if (wrapper.matches(path)) {
+                    servicePatterns.add(wrapper);
+                    if (listener != null) {
+                        listener.bound( wrapper.toString(), path);
+                    }
+                 }
             }
-            if(this.servicePatterns.isEmpty()) {
+            if(servicePatterns.isEmpty()) {
                 throw new RuntimeException("One REST service also could not be found.");
             }
             // 对配置项进行排序，方便后面的查找
             Collections.sort(servicePatterns);
             //检查是否有重复的url
-            checkDuplicateUrl();
+            //checkDuplicateUrl();
         } catch (final RuntimeException e) {
             throw e;
         } catch (final Exception e) {
@@ -117,6 +128,7 @@ public class RestServiceFactory {
         if(null != hit) {
             return hit.getTarget(RestServiceHandler.class);
         }
+        LOGGER.warning(String.format("[REST] - Unmatch '%s' on context '%s'.", realUrl, path));
         return null;
     }
 
@@ -193,7 +205,7 @@ public class RestServiceFactory {
                 if (listener != null) {
                     listener.param("@CookieParam", key, value);
                 }
-                return converter.convert(value.toString(), paramType);
+                return value;
             } else if(annotation instanceof BeanParam) {
                 final String json = new String(contents);
                 if (listener != null) {
@@ -257,7 +269,6 @@ public class RestServiceFactory {
         return null;
     }
 
-
     /**
      * 通过url取得相应的RestService索引
      *
@@ -268,11 +279,34 @@ public class RestServiceFactory {
         if (initing) {
             throw new IllegalStateException();
         }
+        int compareRet;
+        for (RestServiceWrapper wrapper : servicePatterns) {
+            Hitting<?> hit = wrapper.hit(realUrl, requestMethod, args);
+            compareRet = hit.getHit();
+            if (0 == compareRet) {
+                return hit;
+            }
+        }
+        return null;
+    }
+
+
+    /**
+     * 通过url取得相应的RestService索引
+     *
+     * @param realUrl
+     * @return 索引
+     */
+    protected Hitting<?> fastHit(final String realUrl, final String requestMethod,  final Map<String, Object> args) throws IOException {
+        //TODO How to be called
+        if (initing) {
+            throw new IllegalStateException();
+        }
         // 折半查找RestService实体
         int low = 0;
         int high = servicePatterns.size();
         int index = (low + high) / 2;
-        Hitting<?> hit = servicePatterns.get((low + high) / 2).hit(realUrl, requestMethod, args);
+        Hitting<?> hit = servicePatterns.get(index).hit(realUrl, requestMethod, args);
         int compareRet = hit.getHit();
         while (compareRet != 0 && ((high - low) != 1)) {
             if (compareRet > 0) {
@@ -311,6 +345,7 @@ public class RestServiceFactory {
 
     /**
      * 检查是否有重复的url定义
+     * @deprecated
      */
     private void checkDuplicateUrl() {
         RestServiceWrapper prePattern = null;

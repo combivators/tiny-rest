@@ -1,8 +1,10 @@
-package net.tiny.ws.rs;
+package net.tiny.ws.rs.test;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.ws.rs.BeanParam;
 import javax.ws.rs.Consumes;
@@ -23,10 +25,13 @@ import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 
+import net.tiny.ws.rs.ApplicationException;
+import net.tiny.ws.rs.Model;
+
 import javax.ws.rs.core.UriInfo;
 
-@Path("/v1/api")
-public class SampleService {
+@Path("/api/v1")
+public class SampleApiService {
 
     @GET
     @Path("add/{a}/{b}")
@@ -89,16 +94,27 @@ public class SampleService {
 
     @GET
     @Path(value = "cookie")
-    public Response cookie(@CookieParam("myCookie1") Cookie cookie1, @CookieParam("myCookie2") Cookie cookie2) {
-        String response = "cookie1: " + cookie1.getValue() +  "  cookie2: " + cookie2.getValue();
+    @Produces(MediaType.APPLICATION_JSON)
+    public Model cookie(@CookieParam("cookie1") String cookie1, @CookieParam("cookie2") String cookie2) {
+        String cookies = "cookie1: " + cookie1 +  "  cookie2: " + cookie2;
+        System.out.println("/api/v1/cookie " + cookies);
+        /*
         NewCookie c1 = new NewCookie("name1", "The cookie value$1");
         Cookie cookie = new Cookie("name2", "The cookie value%2");
         NewCookie c2 = new NewCookie(cookie);
         ResponseBuilder builder = Response.ok(response);
         return builder.cookie(c1, c2).build();
+        */
+        Map<String, String> map = new HashMap<>();
+        map.put("token", "1234567890abcdef");
+        return new Model(map)
+                .cookie("authToken=" + cookie1 + cookie2)
+                .cache(86400L);
+
     }
 
-
+    ///////////////////////////////
+    //Not implements Rest Object
 
     @GET
     @Path("info")

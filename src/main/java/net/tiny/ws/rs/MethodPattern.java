@@ -11,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
@@ -69,7 +70,7 @@ public class MethodPattern implements Comparable<MethodPattern>, RestServiceHand
         this.method = method;
         if(null != pattern) {
             // Format pattern string
-            if (!pattern.startsWith("/")) {
+            if (!pattern.startsWith("/") && !path.endsWith("/")) {
                 this.pattern = this.path +  "/" + pattern;
             } else {
                 this.pattern = this.path + pattern;
@@ -170,7 +171,6 @@ public class MethodPattern implements Comparable<MethodPattern>, RestServiceHand
             // Hit it
             hitted = 0;
         } else {
-            //int compareRet = super.comparePatternAndUrl(this.path + this.pattern, realUrl);
             int compareRet = this.pattern.compareTo(realUrl);
             if(compareRet == 0) {
                 hitted = 1;
@@ -179,7 +179,8 @@ public class MethodPattern implements Comparable<MethodPattern>, RestServiceHand
             }
         }
         if (hitted==0) {
-            LOGGER.fine(String.format("[REST] '%s' hitted pattern '%s'" , realUrl, this.pattern));
+            if (LOGGER.isLoggable(Level.FINE))
+                LOGGER.fine(String.format("[REST] '%s' hitted pattern '%s'" , realUrl, this.pattern));
         }
         return hitted;
     }
@@ -426,14 +427,12 @@ public class MethodPattern implements Comparable<MethodPattern>, RestServiceHand
         final String[] uriSegs = uri.split("/");
 
         if(patternSegs.length < uriSegs.length) {
-            //Exception error =  new IllegalArgumentException(String.format("'%1$s' argument number %2$d > %3$d", uri,  uriSegs.length, patternSegs.length));
             return false;
         }
         final int count = uriSegs.length;
         for (int i = 0; i < count; i++) {
             // URI每个节是否匹配
             if(!matchPattern(patternSegs[i], uriSegs[i], args)) {
-                //Exception error =  new IllegalArgumentException(String.format("'%1$s'  Invalidated. '%2$s' not matched '%3$s'", uri,  uriSegs[i],  patternSegs[i]));
                 return false;
             }
         }

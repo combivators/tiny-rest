@@ -60,7 +60,7 @@ public class RestfulHttpHandler extends BaseWebService {
      */
     public RestServiceWrapper[] setupRestServiceFactory() {
         if (null == factory) {
-            factory = new RestServiceFactory(listener);
+            factory = new RestServiceFactory(path(), listener);
             factory.setApplication(application);
         }
         return factory.getWrapperServices();
@@ -119,12 +119,23 @@ public class RestfulHttpHandler extends BaseWebService {
                     final ModelAndView mv = (ModelAndView)result;
                     mv.setReferer(request.getReferer());
                     renderer.render(he, mv, handler.getMethod().getAnnotations(), MediaType.TEXT_HTML_TYPE, request.getHeaders());
-                } else {
+                } else if (requestedMediaType(handler, MediaType.APPLICATION_JSON_TYPE) && result instanceof Model) {
+                    // Send json response
+                    final Model model = (Model)result;
+                    model.send(he);
+                } else if (requestedMediaType(handler, MediaType.APPLICATION_JSON_TYPE)) {
                     // Return json response
                     final ResponseHeaderHelper header = HttpHandlerHelper.getHeaderHelper(he);
                     final String response = JsonParser.marshal(result);
                     final byte[] rawResponse = response.getBytes(StandardCharsets.UTF_8);
                     header.setContentType(MIME_TYPE.JSON);
+                    he.sendResponseHeaders(HttpURLConnection.HTTP_OK, rawResponse.length);
+                    he.getResponseBody().write(rawResponse);
+                } else {
+                    // Return binary response
+                    final ResponseHeaderHelper header = HttpHandlerHelper.getHeaderHelper(he);
+                    final byte[] rawResponse =  (byte[])result;
+                    header.setContentType(responseMimeType(handler));
                     he.sendResponseHeaders(HttpURLConnection.HTTP_OK, rawResponse.length);
                     he.getResponseBody().write(rawResponse);
                 }
@@ -155,10 +166,42 @@ public class RestfulHttpHandler extends BaseWebService {
         final Produces produces = handler.getMethod().getAnnotation(Produces.class);
         boolean requested = false;
         for (String type : produces.value()) {
-            requested = type.contains(mediaType.getType()) || type.contains(mediaType.getSubtype());
+            requested = matchesType(type, mediaType);
             if (requested)
                 break;
         }
         return requested;
+    }
+
+    private MIME_TYPE responseMimeType(RestServiceHandler handler) {
+        final Produces produces = handler.getMethod().getAnnotation(Produces.class);
+        String mimeType = null;
+        for (String type : produces.value()) {
+            if (MediaType.APPLICATION_OCTET_STREAM.equals(type)) {
+                return MIME_TYPE.DAT;
+            } else if (MediaType.TEXT_PLAIN.equals(type)) {
+                return MIME_TYPE.TXT;
+            } else if (MediaType.APPLICATION_XML.equals(type)) {
+                return MIME_TYPE.XML;
+            } else if (MediaType.APPLICATION_SVG_XML.equals(type)) {
+                return MIME_TYPE.SVG;
+            } else {
+                mimeType = type;
+            }
+        }
+        if (mimeType != null) {
+            try {
+                return MIME_TYPE.valueOf(mimeType);
+            } catch (RuntimeException e) {
+                LOGGER.warning(String.format("[REST] - Unknow mime type '%s'", mimeType));
+                return MIME_TYPE.TXT;
+            }
+        } else {
+            return MIME_TYPE.TXT;
+        }
+    }
+
+    private boolean matchesType(String type, MediaType mediaType) {
+        return type.contains(mediaType.getType()) && type.contains(mediaType.getSubtype());
     }
 }

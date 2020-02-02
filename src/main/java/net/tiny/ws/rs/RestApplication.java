@@ -1,8 +1,10 @@
 package net.tiny.ws.rs;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -26,20 +28,22 @@ public class RestApplication extends Application {
     private Level level;
     private String loggingLevel   = "fine";
     private String pattern = "!java.*, !javax.*, !com.sun.*";
-    private String jars = null;
+    private String scan = null;
     private Set<Object> singletons = new HashSet<Object>();
+    private Set<Class<?>> restClasses;
+    private Map<String, Object> properties = new HashMap<>();
     private ClassFinder classFinder;
 
     public void setLoggingLevel(String level) {
-    	this.loggingLevel = level;
+        this.loggingLevel = level;
     }
 
     public void setPattern(String pattern) {
-    	this.pattern = pattern;
+        this.pattern = pattern;
     }
 
-    public void setJars(String jars) {
-    	this.jars = jars;
+    public void setScan(String scan) {
+        this.scan = scan;
     }
 
     /**
@@ -47,9 +51,11 @@ public class RestApplication extends Application {
      */
     @Override
     public Set<Class<?>> getClasses() {
-        Set<Class<?>> restClasses = findAllRestClasses();
-        Collections.unmodifiableSet(restClasses);
-        Collections.synchronizedSet(restClasses);
+        if (restClasses == null || restClasses.isEmpty()) {
+            restClasses = findAllRestClasses();
+            Collections.unmodifiableSet(restClasses);
+            Collections.synchronizedSet(restClasses);
+        }
         return restClasses;
     }
 
@@ -58,8 +64,13 @@ public class RestApplication extends Application {
         return singletons;
     }
 
+    @Override
+    public Map<String, Object> getProperties() {
+        return properties;
+    }
+
     public ClassFinder getClassFinder() {
-    	if (classFinder == null) {
+        if (classFinder == null) {
             final String include = System.getProperty("javax.ws.rs.scan.packages.include");
             final String exclude = System.getProperty("javax.ws.rs.scan.packages.exclude");
             final String logging = System.getProperty("javax.ws.rs.logging.level");
@@ -70,30 +81,30 @@ public class RestApplication extends Application {
                 patterns = new Patterns(include, exclude);
             }
             if (logging != null) {
-            	loggingLevel = logging;
+                loggingLevel = logging;
             }
             level = Level.parse(loggingLevel.toUpperCase());
             ClassFinder.setLoggingLevel(level);
-            classFinder = new ClassFinder(jars, new RestClassFilter(patterns));
-    	}
-    	return classFinder;
+            classFinder = new ClassFinder(scan, new RestClassFilter(patterns));
+        }
+        return classFinder;
     }
 
     private Set<Class<?>> findAllRestClasses() {
         try {
-        	final ClassFinder finder = getClassFinder();
+            final ClassFinder finder = getClassFinder();
             List<Class<?>> rests = finder.findAnnotatedClasses(javax.ws.rs.Path.class);
             LOGGER.info(String.format("[REST] Registered %d REST classe(s) with pattern '%s'", rests.size(), pattern.toString()));
             for (Class<?> r : rests) {
-            	LOGGER.log(level, String.format("[REST] '%s' registered", r.getName()));
+                LOGGER.log(level, String.format("[REST] '%s' registered", r.getName()));
             }
 
             Set<Class<?>> classSet = new HashSet<>(rests);
             List<Class<?>> providers = finder.findAnnotatedClasses(javax.ws.rs.ext.Provider.class);
             LOGGER.info(String.format("[REST] Found %d Providers classe(s) with pattern '%s'",
-            		providers.size(), pattern.toString()));
+                    providers.size(), pattern.toString()));
             for (Class<?> p : providers) {
-            	LOGGER.log(level, String.format("[REST] Provider '%s' registered", p.getSimpleName()));
+                LOGGER.log(level, String.format("[REST] Provider '%s' registered", p.getSimpleName()));
             }
             return classSet;
         } catch (Exception ex) {

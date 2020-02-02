@@ -5,6 +5,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import net.tiny.ws.rs.test.TestApiService;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -14,7 +16,7 @@ public class RestServiceFactoryTest {
 
     @BeforeEach
     public void setUp() throws Exception {
-        System.setProperty("javax.ws.rs.scan.packages.include", "net.tiny.*");
+        System.setProperty("javax.ws.rs.scan.packages.include", "net.tiny.ws.rs.test.*");
         System.setProperty("javax.ws.rs.scan.packages.exclude", "java.*, com.sun.*");
         System.setProperty("javax.ws.rs.logging.level", "info");
     }
@@ -28,17 +30,25 @@ public class RestServiceFactoryTest {
 
     @Test
     public void testFecthRestService() throws Exception {
-        final Application application = new RestApplication();
-        RestServiceFactory factory = new RestServiceFactory();
+        final RestApplication application = new RestApplication();
+        application.setScan(".*/classes/, .*/test-classes/, .*/tiny-.*[.]jar,");
+        RestServiceFactory factory = new RestServiceFactory("/api", null);
         factory.setApplication(application);
-        final Map<String, Object> args = new HashMap<>();
-        RestServiceHandler handler = factory.getRestServiceHandler("/v1/api/test/get/123", "GET", args);
+        Map<String, Object> args = new HashMap<>();
+        RestServiceHandler handler = factory.getRestServiceHandler("/api/v1/add/123/456", "GET", args);
+        assertNotNull(handler);
+        assertTrue(handler instanceof MethodPattern);
+        assertEquals(2, args.size());
+
+        args = new HashMap<>();
+        handler = factory.getRestServiceHandler("/api/v2/test/get/123", "GET", args);
         assertNotNull(handler);
         assertTrue(handler instanceof MethodPattern);
 
+
         Object target = handler.getTarget();
         assertNotNull(target);
-        assertTrue(target instanceof TestService);
+        assertTrue(target instanceof TestApiService);
 
         assertEquals(1, args.size());
         assertEquals("123", args.get("id"));
@@ -50,11 +60,12 @@ public class RestServiceFactoryTest {
 
     @Test
     public void testNotFoundRestService() throws Exception {
-        final Application application = new RestApplication();
-        RestServiceFactory factory = new RestServiceFactory();
+        final RestApplication application = new RestApplication();
+        application.setScan(".*/classes/, .*/test-classes/, .*/tiny-.*[.]jar,");
+        RestServiceFactory factory = new RestServiceFactory("/api", null);
         factory.setApplication(application);
         final Map<String, Object> args = new HashMap<>();
-        RestServiceHandler handler = factory.getRestServiceHandler("/v1/api/test/unkonw/123", "GET", args);
+        RestServiceHandler handler = factory.getRestServiceHandler("/api/v1/test/unkonw/123", "GET", args);
         assertNull(handler);
     }
 }

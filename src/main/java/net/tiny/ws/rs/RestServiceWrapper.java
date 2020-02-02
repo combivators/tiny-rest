@@ -76,10 +76,11 @@ public class RestServiceWrapper implements Comparable<RestServiceWrapper>, Const
 
         if(methodPatterns.isEmpty()) {
             for(Method method : methods) {
-                LOGGER.warning("Can't register a rest method '" + method.toGenericString() +"'");
+                LOGGER.warning(String.format("Can't register a rest method '%s'.", method.toGenericString()));
             }
             //类里没有被登录的REST方法
-            throw new RuntimeException("'" + serviceClass.getName() +"' one method has not even to register on '" + this.parentPath+"'" );
+            throw new RuntimeException(String.format("'%s' one method has not even to register on '%s'.",
+                    serviceClass.getName(), parentPath));
         }
         // 对配置项进行排序，方便后面的查找
         Collections.sort(methodPatterns);
@@ -129,6 +130,26 @@ public class RestServiceWrapper implements Comparable<RestServiceWrapper>, Const
     public Mode getMode() {
         return mode;
     }
+
+    public boolean matches(String path) {
+        String max = parentPath;
+        String min = path;
+        if (parentPath.length() < path.length()) {
+            max = path;
+            min = parentPath;
+        }
+        if(!max.startsWith(min)) {
+            //前缀路径不同
+            return false;
+        }
+        for(MethodPattern methodPattern : methodPatterns) {
+            if (methodPattern.getPattern().startsWith(path)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * 判断url是否命中pattern
      *
@@ -161,7 +182,7 @@ public class RestServiceWrapper implements Comparable<RestServiceWrapper>, Const
         }
 
         int compareRet = -1;
-        for(MethodPattern methodPattern : methodPatterns) {
+        for (MethodPattern methodPattern : methodPatterns) {
             compareRet = methodPattern.hit(url, requestMethod, args);
             if (compareRet == 0) {
                 return methodPattern.getHitting();
@@ -182,7 +203,7 @@ public class RestServiceWrapper implements Comparable<RestServiceWrapper>, Const
     @Override
     public String toString() {
         StringBuilder sb =  new StringBuilder();
-        sb.append(" Path:'");
+        sb.append(" @Path:'");
         sb.append(this.parentPath);
         sb.append("' ");
         sb.append(serviceClass.getName());

@@ -21,7 +21,7 @@ public class ModelAndViewTest {
         ModelAndView mv = new ModelAndView("index.html");
         String json = JsonParser.marshal(mv);
         System.out.println(json);
-        assertTrue(json.contains("\"viewPath\" : \"index.html\""));
+        assertTrue(json.contains("\"viewPath\":\"index.html\""));
    }
 
     @Test
