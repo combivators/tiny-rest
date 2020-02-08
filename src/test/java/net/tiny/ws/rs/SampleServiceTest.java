@@ -1,8 +1,6 @@
 package net.tiny.ws.rs;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.net.HttpCookie;
 import java.net.HttpURLConnection;
@@ -44,13 +42,16 @@ public class SampleServiceTest {
         RestApplication application = new RestApplication();
         application.setPattern("net.tiny.*, !java.*, !javax.*, !com.sun.*, !org.junit.*,");
         application.setScan(".*/classes/, .*/test-classes/, .*/tiny-.*[.]jar,");
-        RestfulHttpHandler rest = new RestfulHttpHandler();
-        rest.setApplication(application);
-        rest.setListener(new RestServiceLocator.RestServiceMonitor());
+        RestServiceLocator context = new RestServiceLocator();
+        context.bind("application", application, true);
 
-        WebServiceHandler restful = rest.path("/api/v1")
-                .filters(Arrays.asList(logger, snap));
+        RestfulHttpHandler rest = new RestfulHttpHandler();
+        rest.path("/api/v1");
+        rest.setListener(new RestServiceLocator.RestServiceMonitor());
+        rest.setContext(context);
         rest.setupRestServiceFactory();
+
+        WebServiceHandler restful = rest.filters(Arrays.asList(logger, snap));
 
         server = new EmbeddedServer.Builder()
                 .random()

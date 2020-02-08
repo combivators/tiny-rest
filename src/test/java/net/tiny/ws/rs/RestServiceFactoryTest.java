@@ -10,8 +10,6 @@ import net.tiny.ws.rs.test.TestApiService;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.ws.rs.core.Application;
-
 public class RestServiceFactoryTest {
 
     @BeforeEach
@@ -32,8 +30,12 @@ public class RestServiceFactoryTest {
     public void testFecthRestService() throws Exception {
         final RestApplication application = new RestApplication();
         application.setScan(".*/classes/, .*/test-classes/, .*/tiny-.*[.]jar,");
-        RestServiceFactory factory = new RestServiceFactory("/api", null);
-        factory.setApplication(application);
+
+        RestServiceLocator context = new RestServiceLocator();
+        context.bind("application", application, true);
+
+        RestServiceFactory factory = new RestServiceFactory("/api", context, null);
+
         Map<String, Object> args = new HashMap<>();
         RestServiceHandler handler = factory.getRestServiceHandler("/api/v1/add/123/456", "GET", args);
         assertNotNull(handler);
@@ -62,8 +64,11 @@ public class RestServiceFactoryTest {
     public void testNotFoundRestService() throws Exception {
         final RestApplication application = new RestApplication();
         application.setScan(".*/classes/, .*/test-classes/, .*/tiny-.*[.]jar,");
-        RestServiceFactory factory = new RestServiceFactory("/api", null);
-        factory.setApplication(application);
+        RestServiceLocator context = new RestServiceLocator();
+        context.bind("application", application, true);
+
+        RestServiceFactory factory = new RestServiceFactory("/api", context, null);
+
         final Map<String, Object> args = new HashMap<>();
         RestServiceHandler handler = factory.getRestServiceHandler("/api/v1/test/unkonw/123", "GET", args);
         assertNull(handler);

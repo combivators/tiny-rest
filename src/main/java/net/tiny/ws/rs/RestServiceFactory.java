@@ -4,13 +4,18 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Array;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.net.InetAddress;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.Vector;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -25,13 +30,16 @@ import javax.ws.rs.HeaderParam;
 import javax.ws.rs.MatrixParam;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 
+import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 
 import net.tiny.config.Converter;
 import net.tiny.config.JsonParser;
+import net.tiny.service.ClassFinder;
+import net.tiny.service.ClassHelper;
+import net.tiny.service.ServiceContext;
 
 public class RestServiceFactory {
 
@@ -39,39 +47,45 @@ public class RestServiceFactory {
     public static final String REST_PATH = "/rest";
     private static final String REGEX_COOKIE_NAME_VALUE = "^(\\w+)=(.*)$";
     private static final Pattern COOKIE_PATTERN = Pattern.compile(REGEX_COOKIE_NAME_VALUE);
+    private static final String[] IP_HEADER_CANDIDATES = {
+            "X-Forwarded-For",
+            "Proxy-Client-IP",
+            "WL-Proxy-Client-IP",
+            "HTTP_X_FORWARDED_FOR",
+            "HTTP_X_FORWARDED",
+            "HTTP_X_CLUSTER_CLIENT_IP",
+            "HTTP_CLIENT_IP",
+            "HTTP_FORWARDED_FOR",
+            "HTTP_FORWARDED",
+            "HTTP_VIA",
+            "REMOTE_ADDR" };
 
     private final String path;
-
-    @Resource(name = "restApplication")
-    private Application application;
+    private ServiceContext serviceContext;
     private Vector<RestServiceWrapper> servicePatterns = new Vector<RestServiceWrapper>();
-
     private boolean initing = false;
     private boolean changed = true;
     private Converter converter = new Converter();
     private RestServiceHandler.Listener listener;
 
-    public RestServiceFactory() {
-        this(REST_PATH, null);
-    }
-
-    public RestServiceFactory(String path, RestServiceHandler.Listener listener) {
+    public RestServiceFactory(String path, ServiceContext sc, RestServiceHandler.Listener listener) {
         this.path = path;
         this.listener = listener;
+        setServiceContext(sc);
     }
 
-    public Application getApplication() {
-        return this.application;
+    public ServiceContext getServiceContext() {
+        return this.serviceContext;
     }
 
-    public void setApplication(Application application) {
-        this.application = application;
+    public void setServiceContext(ServiceContext sc) {
+        this.serviceContext = sc;
         this.changed = true;
         try {
             setup();
         } catch (RuntimeException e) {
             LOGGER.log(Level.SEVERE,
-                    String.format("Application setup failed - %s", e.getMessage()), e);
+                    String.format("Restfull application setup failed - %s", e.getMessage()), e);
         }
     }
 
@@ -84,6 +98,10 @@ public class RestServiceFactory {
         initing = true;
         servicePatterns.clear();
         try {
+            final RestApplication application = serviceContext.lookup(RestApplication.class);
+            // Find and load pattern classes about 2s.
+            final ClassFinder classFinder = application.getClassFinder();
+
             Set<Class<?>> serviceClasses = application.getClasses();
             Map<String, Object> cached = application.getProperties();
             for(Class<?> serviceClass : serviceClasses) {
@@ -106,6 +124,21 @@ public class RestServiceFactory {
             Collections.sort(servicePatterns);
             //检查是否有重复的url
             //checkDuplicateUrl();
+
+            // Move RestServiceLocator#injectResource to here
+            // Find all rest services and inject resource.
+            int count = 0;
+            final Map<Class<?>, Supplier<?>> suppliers = new HashMap<>();
+            for (RestServiceWrapper wrapper : servicePatterns) {
+                // Find a field with @Resource
+                List<Field> withResouceAnnotatedFields = ClassHelper.findAnnotatedFields(wrapper.getServiceClass(), Resource.class);
+                for(Field field : withResouceAnnotatedFields) {
+                    if (injectResource(classFinder, suppliers, wrapper.getService(), field)) {
+                        count++;
+                    }
+                }
+            }
+            LOGGER.info(String.format("[REST] Injected %s fields with @Resouce", count));
         } catch (final RuntimeException e) {
             throw e;
         } catch (final Exception e) {
@@ -113,6 +146,46 @@ public class RestServiceFactory {
         } finally {
             initing = false;
             changed = false;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    boolean injectResource(ClassFinder classFinder, Map<Class<?>, Supplier<?>> suppliers, Object bean, Field field) {
+        try {
+            final Class<?> resourceType = Class.forName(field.getGenericType().getTypeName());
+            final Class<? super Supplier<?>> supplierType =
+                    (Class<? super Supplier<?>>)classFinder.findSupplier(resourceType);
+            if (supplierType != null && !suppliers.containsKey(resourceType)) {
+                suppliers.put(resourceType, (Supplier<?>)supplierType.newInstance());
+            }
+
+            field.setAccessible(true);
+            Object res = null;
+            if (supplierType != null) {
+                Supplier<?> supplier = suppliers.get(resourceType);
+                res = supplier.get();
+            } else {
+                res = serviceContext.lookup(resourceType);
+            }
+            if(null != res) {
+                field.set(bean, res);
+                // Injection
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.fine(String.format("[REST] Injection @Resouce of '%s.%s'",
+                        field.getDeclaringClass().getSimpleName(),
+                        field.getName()));
+                }
+            } else {
+                LOGGER.warning(String.format("[REST] Can not inject @Resouce of '%s.%s'",
+                        field.getDeclaringClass().getSimpleName(),
+                        field.getName()));
+            }
+
+            return true;
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+            LOGGER.log(Level.WARNING, String.format("[REST] Not found '%s' Supplier.",
+                    field.getGenericType().getTypeName()), e);
+            return false;
         }
     }
 
@@ -213,7 +286,20 @@ public class RestServiceFactory {
                 }
                 return JsonParser.unmarshal(json, paramType);
             } else if (annotation instanceof Context) {
-                LOGGER.warning("[REST] - Not support @Context parameter type.");
+                //LOGGER.warning("[REST] - Not support @Context parameter type.");
+                Optional<String> remote = getClientIpAddress(he.getRequestHeaders());
+                if (remote.isPresent() && paramType.equals(String.class)) {
+                    return remote.get();
+                }
+                InetAddress address = he.getRemoteAddress().getAddress();
+                if (listener != null) {
+                    listener.param("@Context", paramType.getSimpleName(), address.toString());
+                }
+                if (paramType.equals(InetAddress.class)) {
+                    return paramType.cast(address);
+                } else {
+                    return address.getHostAddress();
+                }
                 /*
                 if(paramType.isAssignableFrom(UriInfo.class)) {
                     //return new UriInfo();
@@ -226,6 +312,15 @@ public class RestServiceFactory {
         return null;
     }
 
+    static Optional<String> getClientIpAddress(Headers headers) {
+        for (String header : IP_HEADER_CANDIDATES) {
+            String ip = headers.getFirst(header);
+            if (ip != null && ip.length() != 0 && !"unknown".equalsIgnoreCase(ip)) {
+                return Optional.of(ip);
+            }
+        }
+        return Optional.empty();
+    }
     /**
      * Search and retreive a cookie from a HTTP request context
      * @param key, The cookie name to search for

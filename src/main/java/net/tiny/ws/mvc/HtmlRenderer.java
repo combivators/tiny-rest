@@ -87,11 +87,17 @@ public class HtmlRenderer implements ViewRenderer {
                           .getBytes();
     }
 
-    private TemplateParser getParser() {
+    public TemplateParser getParser() {
         if (parser == null) {
-            parser = new TemplateParser(prefix, cache);
+            parser = new TemplateParser();
+            parser.setPath(prefix);
+            parser.setCache(cache);
         }
         return parser;
+    }
+
+    public void setParser(TemplateParser parser) {
+        this.parser = parser;
     }
 
     private byte[] getCacheableContents(URL url) throws IOException {

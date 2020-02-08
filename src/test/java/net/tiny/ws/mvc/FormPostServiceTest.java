@@ -24,6 +24,7 @@ import net.tiny.ws.WebServiceHandler;
 import net.tiny.ws.client.SimpleClient;
 import net.tiny.ws.mvc.HtmlRenderer;
 import net.tiny.ws.rs.RestApplication;
+import net.tiny.ws.rs.RestServiceLocator;
 import net.tiny.ws.rs.RestfulHttpHandler;
 
 public class FormPostServiceTest {
@@ -34,19 +35,25 @@ public class FormPostServiceTest {
 
     @BeforeAll
     public static void setUp() throws Exception {
+
         LogManager.getLogManager().readConfiguration(
                 Thread.currentThread().getContextClassLoader().getResourceAsStream("logging.properties"));
-        HtmlRenderer renderer = new HtmlRenderer();
-        AccessLogger logger = new AccessLogger();
+
         RestApplication application = new RestApplication();
         application.setPattern("net.tiny.ws.mvc.*, !java.*, !javax.*, !com.sun.*, !org.junit.*,");
+        RestServiceLocator context = new RestServiceLocator();
+        context.bind("application", application, true);
+
+        HtmlRenderer renderer = new HtmlRenderer();
+        AccessLogger logger = new AccessLogger();
+
         RestfulHttpHandler rest = new RestfulHttpHandler();
-        rest.setApplication(application);
+        rest.path("/test/form");
+        rest.setContext(context);
         rest.setRenderer(renderer);
         rest.setupRestServiceFactory();
 
-        WebServiceHandler restful = rest.path("/test/form")
-                .filters(Arrays.asList(logger));
+        WebServiceHandler restful = rest.filters(Arrays.asList(logger));
 
 
         server = new EmbeddedServer.Builder()

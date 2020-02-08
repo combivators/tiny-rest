@@ -615,8 +615,6 @@ public class RestClient {
             }
             String mediaType = getHeader("Content-Type");
             if (mediaType != null && mediaType.toLowerCase().startsWith("application/json")) {
-                //TODO
-                System.out.println("## " + type.getName() + "  body: " + body);
                 return JsonParser.unmarshal(body, type);
             }
             final Converter converter = new Converter();

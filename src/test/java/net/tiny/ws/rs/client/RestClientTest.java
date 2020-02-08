@@ -17,6 +17,7 @@ import net.tiny.ws.SnapFilter;
 import net.tiny.ws.VoidHttpHandler;
 import net.tiny.ws.WebServiceHandler;
 import net.tiny.ws.rs.RestApplication;
+import net.tiny.ws.rs.RestServiceLocator;
 import net.tiny.ws.rs.RestfulHttpHandler;
 
 public class RestClientTest {
@@ -26,15 +27,19 @@ public class RestClientTest {
 
     @BeforeAll
     public static void setUp() throws Exception {
+        RestApplication application = new RestApplication();
+        application.setPattern("net.tiny.ws.rs.test.*, !java.*, !javax.*, !com.sun.*, !org.junit.*,");
+        RestServiceLocator context = new RestServiceLocator();
+        context.bind("application", application, true);
+
         AccessLogger logger = new AccessLogger();
         ParameterFilter parameter = new ParameterFilter();
         SnapFilter snap = new SnapFilter();
-        RestApplication application = new RestApplication();
-        application.setPattern("net.tiny.ws.rs.test.*, !java.*, !javax.*, !com.sun.*, !org.junit.*,");
+
         RestfulHttpHandler rest = new RestfulHttpHandler();
-        rest.setApplication(application);
-        WebServiceHandler restful = rest.path("/api/v2/")
-                .filters(Arrays.asList(parameter, logger, snap));
+        rest.path("/api/v2/");
+        rest.setContext(context);
+        WebServiceHandler restful = rest.filters(Arrays.asList(parameter, logger, snap));
 
         WebServiceHandler health = new VoidHttpHandler()
                 .path("/healthcheck")

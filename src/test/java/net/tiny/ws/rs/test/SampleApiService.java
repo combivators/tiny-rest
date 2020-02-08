@@ -22,11 +22,11 @@ import javax.ws.rs.core.Cookie;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.NewCookie;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.ResponseBuilder;
+//import javax.ws.rs.core.Response;
+//import javax.ws.rs.core.Response.ResponseBuilder;
 
 import net.tiny.ws.rs.ApplicationException;
-import net.tiny.ws.rs.Model;
+import net.tiny.ws.rs.Response;
 
 import javax.ws.rs.core.UriInfo;
 
@@ -95,7 +95,7 @@ public class SampleApiService {
     @GET
     @Path(value = "cookie")
     @Produces(MediaType.APPLICATION_JSON)
-    public Model cookie(@CookieParam("cookie1") String cookie1, @CookieParam("cookie2") String cookie2) {
+    public Response cookie(@CookieParam("cookie1") String cookie1, @CookieParam("cookie2") String cookie2) {
         String cookies = "cookie1: " + cookie1 +  "  cookie2: " + cookie2;
         System.out.println("/api/v1/cookie " + cookies);
         /*
@@ -107,9 +107,10 @@ public class SampleApiService {
         */
         Map<String, String> map = new HashMap<>();
         map.put("token", "1234567890abcdef");
-        return new Model(map)
+        return Response.ok().entity(map)
                 .cookie("authToken=" + cookie1 + cookie2)
-                .cache(86400L);
+                .cache(86400L)
+                .build();
 
     }
 
@@ -123,8 +124,8 @@ public class SampleApiService {
         String to = info.getQueryParameters().getFirst("to");
         List<String> orderBy = info.getQueryParameters().get("orderBy");
         return Response.status(200)
-           .entity("getUsers is called, from : " + from + ", to : " + to
-            + ", orderBy" + orderBy.toString()).build();
+           .entity("getUsers is called, from : " + from + ", to : " + to + ", orderBy" + orderBy.toString())
+           .build();
 
     }
 

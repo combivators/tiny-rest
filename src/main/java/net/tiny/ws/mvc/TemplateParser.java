@@ -29,9 +29,16 @@ public class TemplateParser {
     final static String IFTHEN_REGX  = "(\\{% if (?:not )?(?:\\w+) %}([\\s\\S]*?)\\{% endif %})";
     final static String IFELSE_REGX  = "(\\{% ((?:else)?(?:if)?) (not )?(?:(\\w+) )?%})([^{%]+)";
 
-    private final ContentLocator contentLocator;
-    private final CacheFunction cache;
+    private ContentLocator contentLocator;
+    private String path;
+    private CacheFunction cache;
 
+    public TemplateParser() {
+        setPath("template");
+        setCache(new CacheFunction(null));
+    }
+
+    /*
     public TemplateParser(String basePath) {
         this(basePath, new CacheFunction(null));
     }
@@ -43,6 +50,20 @@ public class TemplateParser {
             this.contentLocator = new ResourceLocator(basePath);
         }
         this.cache = cache;
+    }
+    */
+
+    public void setPath(String p) {
+        this.path = p;
+        if (path.startsWith("/")) {
+            this.contentLocator = new FileLocator(path);
+        } else {
+            this.contentLocator = new ResourceLocator(path);
+        }
+    }
+
+    public void setCache(CacheFunction c) {
+        this.cache = c;
     }
 
     public String parse(String template, Map<String, Object> parameters) throws IOException {

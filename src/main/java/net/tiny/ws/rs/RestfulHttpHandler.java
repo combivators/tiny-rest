@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.logging.Level;
 
 import javax.ws.rs.Produces;
-import javax.ws.rs.core.Application;
 import javax.ws.rs.core.MediaType;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -27,7 +26,7 @@ import net.tiny.ws.mvc.ViewRenderer;
 
 public class RestfulHttpHandler extends BaseWebService {
 
-    private Application application;
+    //private Application application;
     private RestServiceHandler.Listener listener;
     private RestServiceFactory factory;
     private ViewRenderer renderer;
@@ -38,7 +37,7 @@ public class RestfulHttpHandler extends BaseWebService {
         }
         return factory;
     }
-
+/*
     public Application getApplication() {
         return this.application;
     }
@@ -46,7 +45,7 @@ public class RestfulHttpHandler extends BaseWebService {
     public void setApplication(Application application) {
         this.application = application;
     }
-
+*/
     public void setListener(RestServiceHandler.Listener listener) {
         this.listener = listener;
     }
@@ -60,8 +59,7 @@ public class RestfulHttpHandler extends BaseWebService {
      */
     public RestServiceWrapper[] setupRestServiceFactory() {
         if (null == factory) {
-            factory = new RestServiceFactory(path(), listener);
-            factory.setApplication(application);
+            factory = new RestServiceFactory(path(), context, listener);
         }
         return factory.getWrapperServices();
     }
@@ -119,10 +117,10 @@ public class RestfulHttpHandler extends BaseWebService {
                     final ModelAndView mv = (ModelAndView)result;
                     mv.setReferer(request.getReferer());
                     renderer.render(he, mv, handler.getMethod().getAnnotations(), MediaType.TEXT_HTML_TYPE, request.getHeaders());
-                } else if (requestedMediaType(handler, MediaType.APPLICATION_JSON_TYPE) && result instanceof Model) {
+                } else if (requestedMediaType(handler, MediaType.APPLICATION_JSON_TYPE) && result instanceof Response) {
                     // Send json response
-                    final Model model = (Model)result;
-                    model.send(he);
+                    final Response response = (Response)result;
+                    response.send(he);
                 } else if (requestedMediaType(handler, MediaType.APPLICATION_JSON_TYPE)) {
                     // Return json response
                     final ResponseHeaderHelper header = HttpHandlerHelper.getHeaderHelper(he);
@@ -143,9 +141,13 @@ public class RestfulHttpHandler extends BaseWebService {
                 he.sendResponseHeaders(HttpURLConnection.HTTP_OK, -1);
             }
         } catch (ApplicationException err) {
-
+            Throwable cause = err.getCause();
+            if (cause == null) {
+                cause = err;
+            }
+            he.setAttribute(Throwable.class.getName(), cause);
             LOGGER.log(Level.WARNING, String.format("[REST] - %s '%s' %d %s. On call '%s(...)'",
-                    request.getMethod(), request.getURI(), err.getStatus(), err.getMessage(), handler.toString()), err);
+                    request.getMethod(), request.getURI(), err.getStatus(), err.getMessage(), handler.toString()), cause);
             he.sendResponseHeaders(err.getStatus(), -1);
         }
     }

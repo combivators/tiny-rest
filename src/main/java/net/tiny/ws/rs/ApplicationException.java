@@ -131,4 +131,11 @@ public class ApplicationException extends RuntimeException {
         }
         return message;
     }
+
+    static Throwable findCause(final Throwable ex, final int deep, final int count) {
+        if (deep == count) return ex;
+        Throwable cause = ex.getCause();
+        if (null == cause) return ex;
+        return findCause(cause, deep, (count+1));
+    }
 }

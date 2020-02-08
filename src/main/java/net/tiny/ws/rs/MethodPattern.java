@@ -237,34 +237,27 @@ public class MethodPattern implements Comparable<MethodPattern>, RestServiceHand
 
     @Override
     public Object invoke(final Object[] args) {
-        final Object delgate;
+        Object delgate = null;
         try {
             delgate = getTarget();
             if(listener != null) {
                 listener.called(delgate.getClass().getSimpleName(), delgate.hashCode(), method.getName(), args);
             }
             return method.invoke(delgate, args);
-        } catch (ApplicationException ex) {
-            throw ex;
-        } catch (Exception ex) {
+        } catch (Throwable ex) {
             if(listener != null) {
-                listener.error(ex, method.getName(), args);
+                String target = delgate != null ? delgate.getClass().getSimpleName() : "Unknow";
+                listener.error(ex, target, method.getName(), args);
             }
-            ApplicationException err = findExceptionCause(ex);
-            if (err != null) {
-                throw err;
+            Throwable cause = ex;
+            if (cause instanceof ApplicationException) {
+                throw (ApplicationException)ex;
             }
-            throw new ApplicationException(ex, HttpURLConnection.HTTP_INTERNAL_ERROR);
-        }
-    }
-
-    private ApplicationException findExceptionCause(Throwable ex) {
-        Throwable cause = ex.getCause();
-        if (null == cause) return null;
-        if (cause instanceof ApplicationException) {
-            return (ApplicationException)cause;
-        } else {
-            return findExceptionCause(cause);
+            cause = ApplicationException.findCause(ex, 3, 0);
+            if (cause instanceof ApplicationException) {
+                throw (ApplicationException)cause;
+            }
+            throw new ApplicationException(cause, HttpURLConnection.HTTP_INTERNAL_ERROR);
         }
     }
 
