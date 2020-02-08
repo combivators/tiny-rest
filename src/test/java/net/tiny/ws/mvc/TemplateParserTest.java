@@ -150,8 +150,7 @@ public class TemplateParserTest {
 
     @Test
     public void testTemplateParserFillsPlaceHolderInH1Element() throws Exception {
-        String basePath = "template";
-        TemplateParser templateParser = new TemplateParser(basePath);
+        TemplateParser templateParser = new TemplateParser();
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("name", "helloWorld");
 
@@ -162,8 +161,7 @@ public class TemplateParserTest {
 
     @Test
     public void testReplaceHolderInValues() throws Exception {
-        String basePath = "template";
-        TemplateParser templateParser = new TemplateParser(basePath);
+        TemplateParser templateParser = new TemplateParser();
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("name", "hoge");
         parameters.put("age", "27");
@@ -175,8 +173,7 @@ public class TemplateParserTest {
 
     @Test
     public void testPlaceholderValueGetsEscapedWhenUsingTwoBrackets() throws Exception {
-        String basePath = "template";
-        TemplateParser templateParser = new TemplateParser(basePath);
+        TemplateParser templateParser = new TemplateParser();
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("name", "<h1>helloWorld</h1>");
 
@@ -187,8 +184,8 @@ public class TemplateParserTest {
 
     @Test
     public void testPlaceholderValueDoesNotGetEscapedWhenUsingThreeBrackets() throws Exception {
-        String basePath = "template";
-        TemplateParser templateParser = new TemplateParser(basePath);
+
+        TemplateParser templateParser = new TemplateParser();
 
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("name", "<h1>helloWorld</h1>");
@@ -201,8 +198,7 @@ public class TemplateParserTest {
 
     @Test
     public void testIfBlockContentIsOnlyShownWhenTruthy() throws Exception {
-        String basePath = "template";
-        TemplateParser templateParser = new TemplateParser(basePath);
+        TemplateParser templateParser = new TemplateParser();
 
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("isLoggedIn", true);
@@ -214,8 +210,7 @@ public class TemplateParserTest {
 
     @Test
     public void testIfBlockContentIsOnlyShownWhenTruthyWithNegatedIf() throws Exception {
-        String basePath = "template";
-        TemplateParser templateParser = new TemplateParser(basePath);
+        TemplateParser templateParser = new TemplateParser();
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("isLoggedIn", false);
 
@@ -226,8 +221,7 @@ public class TemplateParserTest {
 
     @Test
     public void testOnlyContentOfFirstTruthyIfIsShown() throws Exception {
-        String basePath = "template";
-        TemplateParser templateParser = new TemplateParser(basePath);
+        TemplateParser templateParser = new TemplateParser();
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("isLoggedIn", false);
         parameters.put("isAdmin", true);
@@ -239,8 +233,7 @@ public class TemplateParserTest {
 
     @Test
     public void testContentOfElseIsShownWhenThereAreNoTruthyIfStatements() throws Exception {
-        String basePath = "template";
-        TemplateParser templateParser = new TemplateParser(basePath);
+        TemplateParser templateParser = new TemplateParser();
 
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("isLoggedIn", false);
@@ -253,8 +246,7 @@ public class TemplateParserTest {
 
     @Test
     public void testPropertiesOfObjectInListGetUsedForPlaceholdersInForBlock() throws Exception {
-        String basePath = "template";
-        TemplateParser templateParser = new TemplateParser(basePath);
+        TemplateParser templateParser = new TemplateParser();
         Map<String, Object> parameters = new HashMap<>();
         List<Map<String, Object>> users = new ArrayList<>();
 
@@ -274,8 +266,7 @@ public class TemplateParserTest {
 
     @Test
     public void testReplaceContentBlocks() throws Exception {
-        String basePath = "template";
-        TemplateParser templateParser = new TemplateParser(basePath);
+        TemplateParser templateParser = new TemplateParser();
 
         Map<String, Object> parameters = new HashMap<>();
 
@@ -292,8 +283,7 @@ public class TemplateParserTest {
 
     @Test
     public void testIncludePartials() throws Exception {
-        String basePath = "template";
-        TemplateParser templateParser = new TemplateParser(basePath);
+        TemplateParser templateParser = new TemplateParser();
 
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("title", "Hello, Welcome");
@@ -306,8 +296,7 @@ public class TemplateParserTest {
 
     @Test
     public void testIncludeOnly() throws Exception {
-        String basePath = "template";
-        TemplateParser templateParser = new TemplateParser(basePath);
+        TemplateParser templateParser = new TemplateParser();
 
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("title", "Hello, Welcome");
@@ -329,8 +318,7 @@ public class TemplateParserTest {
 
     @Test
     public void testIncludeParentTemplate() throws Exception {
-        String basePath = "template";
-        TemplateParser templateParser = new TemplateParser(basePath);
+        TemplateParser templateParser = new TemplateParser();
 
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("title", "Hello, Welcome");

@@ -33,6 +33,13 @@ public class RestfulServerTest {
         LogManager.getLogManager().readConfiguration(
                 Thread.currentThread().getContextClassLoader().getResourceAsStream("logging.properties"));
 
+        RestApplication application = new RestApplication();
+        application.setPattern("net.tiny.ws.rs.test.*, !java.*, !javax.*, !com.sun.*, !org.junit.*,");
+        application.setScan(".*/classes/, .*/test-classes/, .*/tiny-.*[.]jar,");
+
+        RestServiceLocator context = new RestServiceLocator();
+        context.bind("application", application, true);
+
         AccessLogger logger = new AccessLogger();
         ParameterFilter parameter = new ParameterFilter();
         SnapFilter snap = new SnapFilter();
@@ -42,24 +49,24 @@ public class RestfulServerTest {
                 .filter(logger);
 
         RestServiceLocator.RestServiceMonitor listener = new RestServiceLocator.RestServiceMonitor();
-        RestApplication application = new RestApplication();
-        application.setPattern("net.tiny.ws.rs.test.*, !java.*, !javax.*, !com.sun.*, !org.junit.*,");
-        application.setScan(".*/classes/, .*/test-classes/, .*/tiny-.*[.]jar,");
+
 
         RestfulHttpHandler restApi = new RestfulHttpHandler();
+        restApi.path("/api");
         restApi.setListener(listener);
-        restApi.setApplication(application);
-        WebServiceHandler api = restApi.path("/api")
-                .filters(Arrays.asList(parameter, logger, snap));
+        restApi.setContext(context);
         restApi.setupRestServiceFactory();
+
+        WebServiceHandler api = restApi.filters(Arrays.asList(parameter, logger, snap));
 
 
         RestfulHttpHandler restUi = new RestfulHttpHandler();
+        restUi.path("/ui");
         restUi.setListener(listener);
-        restUi.setApplication(application);
-        WebServiceHandler ui = restUi.path("/ui")
-                .filters(Arrays.asList(parameter, logger, snap));
+        restUi.setContext(context);
         restUi.setupRestServiceFactory();
+
+        WebServiceHandler ui = restUi.filters(Arrays.asList(parameter, logger, snap));
 
 
         server = new EmbeddedServer.Builder()

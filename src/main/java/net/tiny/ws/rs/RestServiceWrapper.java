@@ -134,6 +134,10 @@ public class RestServiceWrapper implements Comparable<RestServiceWrapper>, Const
     public boolean matches(String path) {
         String max = parentPath;
         String min = path;
+        //TODO
+        if (parentPath == null || path == null) {
+            throw new IllegalArgumentException("### The class '" + serviceClass.getName() + "' " + path);
+        }
         if (parentPath.length() < path.length()) {
             max = path;
             min = parentPath;
