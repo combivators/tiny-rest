@@ -25,8 +25,8 @@ public class RestApplication extends Application {
     private static Logger LOGGER = Logger.getLogger(RestApplication.class.getName());
     static final String PROPERTY_KEY = RestApplication.class.getName();
 
-    private Level level;
-    private String loggingLevel   = "fine";
+    private Level level = Level.FINE;
+    private boolean verbose = false;
     private String pattern = "!java.*, !javax.*, !com.sun.*";
     private String scan = null;
     private Set<Object> singletons = new HashSet<Object>();
@@ -34,8 +34,15 @@ public class RestApplication extends Application {
     private Map<String, Object> properties = new HashMap<>();
     private ClassFinder classFinder;
 
-    public void setLoggingLevel(String level) {
-        this.loggingLevel = level;
+    public void setLevel(Level level) {
+        this.level = level;
+    }
+
+    public void setVerbose(boolean enable) {
+        this.verbose = enable;
+        if (verbose) {
+            setLevel(Level.INFO);
+        }
     }
 
     public void setPattern(String pattern) {
@@ -81,9 +88,8 @@ public class RestApplication extends Application {
                 patterns = new Patterns(include, exclude);
             }
             if (logging != null) {
-                loggingLevel = logging;
+                level = Level.parse(logging.toUpperCase());
             }
-            level = Level.parse(loggingLevel.toUpperCase());
             ClassFinder.setLoggingLevel(level);
             classFinder = new ClassFinder(scan, new RestClassFilter(patterns));
         }

@@ -26,7 +26,6 @@ import net.tiny.ws.mvc.ViewRenderer;
 
 public class RestfulHttpHandler extends BaseWebService {
 
-    //private Application application;
     private RestServiceHandler.Listener listener;
     private RestServiceFactory factory;
     private ViewRenderer renderer;
@@ -37,15 +36,7 @@ public class RestfulHttpHandler extends BaseWebService {
         }
         return factory;
     }
-/*
-    public Application getApplication() {
-        return this.application;
-    }
 
-    public void setApplication(Application application) {
-        this.application = application;
-    }
-*/
     public void setListener(RestServiceHandler.Listener listener) {
         this.listener = listener;
     }
@@ -98,6 +89,7 @@ public class RestfulHttpHandler extends BaseWebService {
         switch(method) {
         case PUT:
         case POST:
+        case DELETE:
             contents = request.getRequestContent();
             break;
         default:

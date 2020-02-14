@@ -46,6 +46,7 @@ import javax.net.ssl.X509TrustManager;
 
 import net.tiny.config.Converter;
 import net.tiny.config.JsonParser;
+import net.tiny.config.Reflections;
 
 public class RestClient {
     private static final Logger LOGGER =
@@ -106,6 +107,10 @@ public class RestClient {
 
     public Response doPut(final URL url, Object entity) throws IOException {
         return execute(url).put(entity, MIME_TYPE_JSON, ACCEPT);
+    }
+
+    public Response doDelete(final URL url, Object entity) throws IOException {
+        return execute(url).delete(entity, MIME_TYPE_JSON, ACCEPT);
     }
 
     public Response doDelete(final URL url) throws IOException {
@@ -169,6 +174,16 @@ public class RestClient {
             BufferedOutputStream bos = new BufferedOutputStream(conn.getOutputStream());
             bos.write(JsonParser.marshal(entity).getBytes());
             bos.flush();
+            break;
+        case DELETE:
+            if (null != entity) {
+                // Allow Outputs
+                conn.setDoOutput(true);
+                // Send data
+                BufferedOutputStream out = new BufferedOutputStream(conn.getOutputStream());
+                out.write(JsonParser.marshal(entity).getBytes());
+                out.flush();
+            }
             break;
         default :
             break;
@@ -499,6 +514,10 @@ public class RestClient {
         }
 
 
+        public Response delete(Object entiy, String mimeType, String mediaType) throws IOException {
+            return send(HTTP_METHOD.DELETE, entiy, mimeType, mediaType);
+        }
+
         public Response delete() throws IOException {
             method = HTTP_METHOD.DELETE;
             connect(this, method, null);
@@ -608,6 +627,9 @@ public class RestClient {
 
         public <T> T readEntity(Class<T> type) throws IOException {
             final String body = getEntity();
+            if (void.class.equals(type)) {
+                return type.cast(null);
+            }
             if (body == null || body.isEmpty())
                 return null;
             if (String.class.equals(type)) {
@@ -615,10 +637,18 @@ public class RestClient {
             }
             String mediaType = getHeader("Content-Type");
             if (mediaType != null && mediaType.toLowerCase().startsWith("application/json")) {
+                /*
+                if (Reflections.isCollectionType(type)) {
+                    // Not support collection entity type response
+                    Class<?> genericType = String.class;//TODO
+                    return type.cast(JsonParser.unmarshals(body, genericType));
+                } else {
+                    return JsonParser.unmarshal(body, type);
+                }
+                */
                 return JsonParser.unmarshal(body, type);
             }
-            final Converter converter = new Converter();
-            return converter.convert(body, type);
+            return new Converter().convert(body, type);
         }
 
         public String getEntity() throws IOException {
