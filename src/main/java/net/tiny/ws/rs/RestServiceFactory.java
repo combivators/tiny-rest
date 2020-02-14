@@ -6,13 +6,11 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.net.InetAddress;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.Vector;
 import java.util.function.Supplier;
@@ -32,7 +30,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
-import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 
 import net.tiny.config.Converter;
@@ -40,6 +37,7 @@ import net.tiny.config.JsonParser;
 import net.tiny.service.ClassFinder;
 import net.tiny.service.ClassHelper;
 import net.tiny.service.ServiceContext;
+import net.tiny.ws.BaseWebService;
 
 public class RestServiceFactory {
 
@@ -47,19 +45,6 @@ public class RestServiceFactory {
     public static final String REST_PATH = "/rest";
     private static final String REGEX_COOKIE_NAME_VALUE = "^(\\w+)=(.*)$";
     private static final Pattern COOKIE_PATTERN = Pattern.compile(REGEX_COOKIE_NAME_VALUE);
-    private static final String[] IP_HEADER_CANDIDATES = {
-            "X-Forwarded-For",
-            "Proxy-Client-IP",
-            "WL-Proxy-Client-IP",
-            "HTTP_X_FORWARDED_FOR",
-            "HTTP_X_FORWARDED",
-            "HTTP_X_CLUSTER_CLIENT_IP",
-            "HTTP_CLIENT_IP",
-            "HTTP_FORWARDED_FOR",
-            "HTTP_FORWARDED",
-            "HTTP_VIA",
-            "REMOTE_ADDR" };
-
     private final String path;
     private ServiceContext serviceContext;
     private Vector<RestServiceWrapper> servicePatterns = new Vector<RestServiceWrapper>();
@@ -102,8 +87,8 @@ public class RestServiceFactory {
             // Find and load pattern classes about 2s.
             final ClassFinder classFinder = application.getClassFinder();
 
-            Set<Class<?>> serviceClasses = application.getClasses();
-            Map<String, Object> cached = application.getProperties();
+            final Set<Class<?>> serviceClasses = application.getClasses();
+            final Map<String, Object> cached = application.getProperties();
             for(Class<?> serviceClass : serviceClasses) {
                 RestServiceWrapper wrapper = (RestServiceWrapper)cached.get(serviceClass.getName());
                 if (null == wrapper) {
@@ -138,7 +123,7 @@ public class RestServiceFactory {
                     }
                 }
             }
-            LOGGER.info(String.format("[REST] Injected %s fields with @Resouce", count));
+            LOGGER.info(String.format("[REST] '%s' Injected %s fields with @Resouce", path, count));
         } catch (final RuntimeException e) {
             throw e;
         } catch (final Exception e) {
@@ -280,6 +265,12 @@ public class RestServiceFactory {
                 }
                 return value;
             } else if(annotation instanceof BeanParam) {
+                if (null == contents || contents.length == 0) {
+                    if (listener != null) {
+                        listener.param("@BeanParam", paramType.getSimpleName(), "null");
+                    }
+                    return null;
+                }
                 final String json = new String(contents);
                 if (listener != null) {
                     listener.param("@BeanParam", paramType.getSimpleName(), json);
@@ -287,19 +278,11 @@ public class RestServiceFactory {
                 return JsonParser.unmarshal(json, paramType);
             } else if (annotation instanceof Context) {
                 //LOGGER.warning("[REST] - Not support @Context parameter type.");
-                Optional<String> remote = getClientIpAddress(he.getRequestHeaders());
-                if (remote.isPresent() && paramType.equals(String.class)) {
-                    return remote.get();
-                }
-                InetAddress address = he.getRemoteAddress().getAddress();
+                final Object address = BaseWebService.getClientAddress(he, paramType);
                 if (listener != null) {
                     listener.param("@Context", paramType.getSimpleName(), address.toString());
                 }
-                if (paramType.equals(InetAddress.class)) {
-                    return paramType.cast(address);
-                } else {
-                    return address.getHostAddress();
-                }
+                return address;
                 /*
                 if(paramType.isAssignableFrom(UriInfo.class)) {
                     //return new UriInfo();
@@ -312,15 +295,6 @@ public class RestServiceFactory {
         return null;
     }
 
-    static Optional<String> getClientIpAddress(Headers headers) {
-        for (String header : IP_HEADER_CANDIDATES) {
-            String ip = headers.getFirst(header);
-            if (ip != null && ip.length() != 0 && !"unknown".equalsIgnoreCase(ip)) {
-                return Optional.of(ip);
-            }
-        }
-        return Optional.empty();
-    }
     /**
      * Search and retreive a cookie from a HTTP request context
      * @param key, The cookie name to search for
@@ -464,4 +438,5 @@ public class RestServiceFactory {
     public String toString() {
         return info(false);
     }
+
 }

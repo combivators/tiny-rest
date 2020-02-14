@@ -7,7 +7,6 @@ import java.util.logging.Level;
 
 import net.tiny.service.ServiceLocator;
 
-
 public class RestServiceLocator extends ServiceLocator {
 
 
@@ -38,7 +37,7 @@ public class RestServiceLocator extends ServiceLocator {
     }
 
 
-    public static class RestServiceMonitor extends ServiceMonitor implements RestServiceHandler.Listener {
+    public static class RestServiceMonitor extends Monitor implements RestServiceHandler.Listener {
 
         @Override
         public void called(String target, int id, String method, Object[] args) {

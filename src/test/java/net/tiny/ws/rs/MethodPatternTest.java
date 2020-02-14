@@ -92,7 +92,7 @@ public class MethodPatternTest {
     @Test
     public void testValidateExample02Patterns() throws Exception {
         Method[] methods = Example02.class.getDeclaredMethods();
-        Method method = methods[0];
+        Method method = Example02.class.getMethod("login", String.class);
         assertNotNull(method);
         assertEquals("login", method.getName());
         MethodPattern methodPattern = new MethodPattern("rest", "/login/{login: [a-z]*}", "GET", MediaType.APPLICATION_XML, Example02.class, null, method);
@@ -105,7 +105,7 @@ public class MethodPatternTest {
         assertTrue(methodPattern.validatePattern("rest/login/abc", "GET"));
 
 
-        method = methods[1];
+        method = Example02.class.getMethod("image", String.class, String.class, String.class, String.class);
         assertNotNull(method);
         assertEquals("image", method.getName());
         methodPattern = new MethodPattern("rest", "/ui/svg/{fas}/{icon}/{color}/{bg}", "GET", MediaType.APPLICATION_SVG_XML, Example02.class, null, method);
@@ -116,7 +116,7 @@ public class MethodPatternTest {
     @Test
     public void testHittingExample02Patterns() throws Exception {
         Method[] methods = Example02.class.getDeclaredMethods();
-        Method method = methods[0];
+        Method method = Example02.class.getMethod("login", String.class);
         assertNotNull(method);
         assertEquals("login", method.getName());
         MethodPattern methodPattern = new MethodPattern("/customer", "/login/{login: [a-z]*}", "GET", MediaType.APPLICATION_XML, Example02.class, null, method);
@@ -132,7 +132,8 @@ public class MethodPatternTest {
     @Test
     public void testValidateExample02ValidatePattern() throws Exception {
         Method[] methods = Example02.class.getDeclaredMethods();
-        Method method = methods[0];
+        assertEquals(2, methods.length);
+        Method method = Example02.class.getMethod("login", String.class);
         assertNotNull(method);
         assertEquals("login", method.getName());
         MethodPattern methodPattern = new MethodPattern("rest", "/login/{login: [a-z]*}", "GET", MediaType.APPLICATION_XML, Example02.class, null, method);
@@ -306,7 +307,7 @@ public class MethodPatternTest {
     @Test
     public void testGeneratorPattern() throws Exception {
         Method[] methods = Example02.class.getDeclaredMethods();
-        Method method = methods[0];
+        Method method = Example02.class.getMethod("login", String.class);
         assertNotNull(method);
         assertEquals("login", method.getName());
         String pattern = PathPattern.generatorPattern(method);
