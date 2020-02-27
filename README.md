@@ -5,15 +5,16 @@
  - 支持javax.ws.rs基类的REST实装
  - 提供精简的REST客户端Java类。
 
-##Usage
+## Usage
 
-###1. Simple Run
+### 1. Simple Run
+
 ```java
 java net.tiny.boot.Main --verbose
 ```
 
 
-###2. Application configuration file with profile
+### 2. Application configuration file with profile
  - Configuration file : application-{profile}.[yml, json, conf, properties]
 
 ```yaml
@@ -110,7 +111,8 @@ content:
 ```
 
 
-###3. Sample Rest service java
+### 3. Sample Rest service java
+
 ```java
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -164,7 +166,8 @@ public class SampleApiService {
 }
 ```
 
-###4. Sample Rest client java
+### 4. Sample Rest client java
+
 ```java
 import net.tiny.ws.rs.client.RestClient;
 
@@ -178,7 +181,7 @@ String response = client.execute("http://localhost:8080/api/v1/add/12.3/4.56")
 client.close();
 ```
 
-##More Detail, See The Samples
+## More Detail, See The Samples
 
 ---
 Email   : wuweibg@gmail.com
