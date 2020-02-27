@@ -51,7 +51,6 @@ public class SampleApiService {
         return response;
     }
 
-    //TODO @DefaultValue @QueryParam Not implement!
     @GET
     @Path("query?{from=\\d+}&{to=\\d+}&{order}")
     @Produces(MediaType.APPLICATION_JSON)
@@ -62,6 +61,17 @@ public class SampleApiService {
 
         return "query is called, from : " + from + ", to : " + to
                 + ", order by " + orderBy;
+    }
+
+    @GET
+    @Path("search?{x=[0-9]*\\.?[0-9]+}&{y=[0-9]*\\.?[0-9]+}&{n=\\d+}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public String search(
+        @QueryParam("x") float x,
+        @QueryParam("y") float y,
+        @QueryParam("n") int number) {
+
+        return "search is called, (" + x + ", " + y + ") number=" + number;
     }
 
     @POST

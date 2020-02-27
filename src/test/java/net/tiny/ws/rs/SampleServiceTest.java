@@ -103,6 +103,26 @@ public class SampleServiceTest {
     }
 
     @Test
+    public void testQuery() throws Exception {
+        RestClient client = new RestClient.Builder()
+                .userAgent(BROWSER_AGENT)
+                .build();
+
+        // Test GET
+        //RestClient.Response response = client.doGet(new URL("http://localhost:" + port +"/api/v1/search?x=139.809692&y=35.736832&n=10"));
+        RestClient.Response response = client.doGet(new URL("http://localhost:" + port +"/api/v1/search?x=139.809692&y=35.736832&n=10"));
+        assertEquals(response.getStatus(), HttpURLConnection.HTTP_OK);
+        assertTrue(response.hasEntity());
+        String body = response.getEntity();
+        assertNotNull(body);
+        System.out.println(body);
+        //assertEquals("{\"query is called, from : 10, to : 900, order by age\"}", body);
+        response.close();
+
+    }
+
+
+    @Test
     public void testPostEntity() throws Exception {
         RestClient client = new RestClient.Builder()
                 .userAgent(BROWSER_AGENT)
